@@ -198,7 +198,13 @@ class MieleSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self._home_device['ident']['type']['value_localized']
+        ident = self._home_device['ident']
+        
+        result = ident['deviceName']
+        if len(result) == 0:
+            result = ident['type']['value_localized']
+
+        return result
 
     @property
     def state(self):

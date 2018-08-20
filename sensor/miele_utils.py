@@ -4,7 +4,7 @@ from homeassistant.const import STATE_UNKNOWN
 
 from .miele_const import *
 
-TEMP_UNKNOWN = 32768
+TEMP_UNKNOWN = -32768
 
 class DeviceState(Enum):
     """Represents different device states"""    
@@ -34,8 +34,8 @@ def convert_time(prop):
 
 def convert_temperature(prop):
     """Remaps the unknown temperature of 32768 to None"""
-    if MIELE_ATTRIB_VALUE in prop:
-        value = prop[MIELE_ATTRIB_VALUE] 
+    if MIELE_ATTRIB_LOCALIZED_VALUE in prop:
+        value = prop[MIELE_ATTRIB_LOCALIZED_VALUE] 
         if value == TEMP_UNKNOWN:
             return None
         else:
@@ -98,6 +98,7 @@ ATTRIBUTE_CONVERTERS = {
 
     MIELE_MEASURED_TEMPERATURE: convert_temperature,
     MIELE_TARGET_TEMPERATURE: convert_temperature,
+    MIELE_TEMPERATURE: convert_temperature,
     
     MIELE_PROGRAM_TYPE: do_not_localize,
     MIELE_PROGRAM_ID: localize_value,
