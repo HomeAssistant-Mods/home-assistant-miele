@@ -36,7 +36,7 @@ def convert_temperature(prop):
     """Remaps the unknown temperature of 32768 to None"""
     if MIELE_ATTRIB_LOCALIZED_VALUE in prop:
         value = prop[MIELE_ATTRIB_LOCALIZED_VALUE] 
-        if value == TEMP_UNKNOWN:
+        if value == TEMP_UNKNOWN or value == None:
             return None
         else:
             return value

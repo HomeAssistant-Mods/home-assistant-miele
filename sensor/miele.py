@@ -227,12 +227,21 @@ class MieleSensor(Entity):
                 i = 0
                 for item in prop:
                     value = get_converter(key)(item)
-                    result[f'{key}_{i}'] = value
-                    i = i+1
+
+                    if value == None:
+                        if f'{key}_{i}' in result:
+                            del result[f'{key}_{i}']
+                    else:
+                        result[f'{key}_{i}'] = value
+                        i = i+1
 
             else:
                 value = get_converter(key)(prop)
-                result[key] = value
+                if value == None:
+                    if key in result:
+                        del result[key]
+                else:
+                    result[key] = value
 
         return result
 
