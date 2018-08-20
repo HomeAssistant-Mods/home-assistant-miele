@@ -38,6 +38,7 @@ STATE_MAP = {
     DeviceState.PAUSED: STATE_ON,
     DeviceState.END: STATE_ON,
     DeviceState.SERVICE: STATE_ON,
+    DeviceState.NOT_CONNECTED: STATE_OFF,
 }
 
 DEFAULT_NAME = 'Miele@home'
@@ -202,8 +203,11 @@ class MieleSensor(Entity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        state = DeviceState(self._home_device['state']['status']['value_raw'])
-        return map_miele_state(state)
+        try:
+            state = DeviceState(self._home_device['state']['status']['value_raw'])
+            return map_miele_state(state)
+        except KeyError:
+            return map_miele_state(DeviceState.UNKNOWN)
 
     @property
     def device_state_attributes(self):
