@@ -4,13 +4,13 @@ from datetime import timedelta
 
 from homeassistant.helpers.entity import Entity
 
-from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_CLIENT
+from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_DEVICES
 
 PLATFORMS = ['miele']
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(seconds=5)
+ALL_DEVICES = []
 
 def _map_key(key):
     if key == 'status':
@@ -31,42 +31,46 @@ def _map_key(key):
         return 'Start Time'
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    client = hass.data[MIELE_DOMAIN][DATA_CLIENT]
-    devices = client.get_devices()
-
-    for device in devices:
+    global ALL_DEVICES
+    
+    devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
+    for k, device in devices.items():
         device_state = device['state']
 
         sensors = []
         if 'status' in device_state:
-            sensors.append(MieleLocalizedSensor(client, device, 'status'))
+            sensors.append(MieleLocalizedSensor(hass, device, 'status'))
 
         if 'programType' in device_state:
-            sensors.append(MieleRawSensor(client, device, 'programType'))
+            sensors.append(MieleRawSensor(hass, device, 'programType'))
         if 'programPhase' in device_state:
-            sensors.append(MieleRawSensor(client, device, 'programPhase'))
+            sensors.append(MieleRawSensor(hass, device, 'programPhase'))
 
         if 'targetTemperature' in device_state:
             for i, val in enumerate(device_state['targetTemperature']):
-                sensors.append(MieleTemperatureSensor(client, device, 'targetTemperature', i))
+                sensors.append(MieleTemperatureSensor(hass, device, 'targetTemperature', i))
         if 'temperature' in device_state:
             for i, val in enumerate(device_state['temperature']):
-                sensors.append(MieleTemperatureSensor(client, device, 'temperature', i))
+                sensors.append(MieleTemperatureSensor(hass, device, 'temperature', i))
 
         if 'remainingTime' in device_state:
-            sensors.append(MieleTimeSensor(client, device, 'remainingTime'))
+            sensors.append(MieleTimeSensor(hass, device, 'remainingTime'))
         if 'startTime' in device_state:
-            sensors.append(MieleTimeSensor(client, device, 'startTime'))
+            sensors.append(MieleTimeSensor(hass, device, 'startTime'))
         if 'elapsedTime' in device_state:
-            sensors.append(MieleTimeSensor(client, device, 'elapsedTime'))
-
+            sensors.append(MieleTimeSensor(hass, device, 'elapsedTime'))
 
         add_devices(sensors)
+        ALL_DEVICES = ALL_DEVICES + sensors
+
+def update_device_state():
+    for device in ALL_DEVICES:
+        device.async_schedule_update_ha_state(True)
 
 class MieleRawSensor(Entity):
 
-    def __init__(self, client, device, key):
-        self._client = client
+    def __init__(self, hass, device, key):
+        self._hass = hass
         self._device = device
         self._key = key
 
@@ -97,10 +101,11 @@ class MieleRawSensor(Entity):
 
         return self._device['state'][self._key]['value_raw']
 
-    def update(self): 
-        # _LOGGER.info(f'Updating Miele Binary Sensor {self.unique_id}')
-        self._device = self._client.get_device(self.device_id)
-        return
+    async def async_update(self): 
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
+            _LOGGER.error(' Miele device not found: {}'.format(self.device_id))
+        else:
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
 class MieleLocalizedSensor(MieleRawSensor):
     def __init(self, client, device, key):
@@ -116,7 +121,7 @@ class MieleLocalizedSensor(MieleRawSensor):
         return result
 
 class MieleTimeSensor(MieleRawSensor):
-    def __init(self, client, device, key):
+    def __init(self, hass, device, key):
         pass
 
     @property
@@ -130,8 +135,8 @@ class MieleTimeSensor(MieleRawSensor):
 
 class MieleTemperatureSensor(Entity):
 
-    def __init__(self, client, device, key, index):
-        self._client = client
+    def __init__(self, hass, device, key, index):
+        self._hass = hass
         self._device = device
         self._key = key
         self._index = index
@@ -176,7 +181,8 @@ class MieleTemperatureSensor(Entity):
     def device_class(self):
         return "temperature"
 
-    def update(self): 
-        # _LOGGER.info(f'Updating Miele Binary Sensor {self.unique_id}')
-        self._device = self._client.get_device(self.device_id)
-        return
+    async def async_update(self): 
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
+            _LOGGER.error(' Miele device not found: {}'.format(self.device_id))
+        else:
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]

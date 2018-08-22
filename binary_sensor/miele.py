@@ -5,39 +5,52 @@ from datetime import timedelta
 from homeassistant.helpers.entity import Entity
 from homeassistant.components.binary_sensor import BinarySensorDevice
 
-from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_CLIENT
+from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_DEVICES
 
 PLATFORMS = ['miele']
 
 _LOGGER = logging.getLogger(__name__)
 
-SCAN_INTERVAL = timedelta(seconds=5)
+ALL_DEVICES = []
+
+def _map_key(key):
+    if key == 'signalInfo':
+        return 'Info'
+    elif key == 'signalFailure':
+        return 'Failure'
+    elif key == 'signalDoor':
+        return 'Door'
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     
-    client = hass.data[MIELE_DOMAIN][DATA_CLIENT]
-    devices = client.get_devices()
-    for device in devices:
+    global ALL_DEVICES
+
+    devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
+    for k, device in devices.items():
         device_state = device['state']
 
         binary_devices = []
         if 'signalInfo' in device_state:
-            binary_devices.append(MieleBinarySensor(device, client, 'signalInfo', 'Info'))
+            binary_devices.append(MieleBinarySensor(hass, device, 'signalInfo'))
         if 'signalFailure' in device_state:
-            binary_devices.append(MieleBinarySensor(device, client, 'signalFailure', 'Failure'))
+            binary_devices.append(MieleBinarySensor(hass, device, 'signalFailure'))
         if 'signalDoor' in device_state:
-            binary_devices.append(MieleBinarySensor(device, client, 'signalDoor', 'Door'))
+            binary_devices.append(MieleBinarySensor(hass, device, 'signalDoor'))
 
         add_devices(binary_devices)
+        ALL_DEVICES = ALL_DEVICES + binary_devices
 
+def update_device_state():
+    for device in ALL_DEVICES:
+        device.async_schedule_update_ha_state(True)
 
 class MieleBinarySensor(BinarySensorDevice):
 
-    def __init__(self, device, client, key, ha_key):
-        self._client = client
+    def __init__(self, hass, device, key):
+        self._hass = hass
         self._device = device
         self._key = key
-        self._ha_key = ha_key
+        self._ha_key = _map_key(key)
 
     @property
     def device_id(self):
@@ -72,7 +85,8 @@ class MieleBinarySensor(BinarySensorDevice):
         else:
             return 'problem'
 
-    def update(self): 
-        # _LOGGER.info(f'Updating Miele Binary Sensor {self.unique_id}')
-        self._device = self._client.get_device(self.device_id)
-        return
+    async def async_update(self): 
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
+            _LOGGER.error(' Miele device not found: {}'.format(self.device_id))
+        else:
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]

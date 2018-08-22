@@ -14,6 +14,7 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_component import EntityComponent
+from homeassistant.helpers.event import async_track_time_interval
 import homeassistant.helpers.config_validation as cv
 
 from .miele_at_home import MieleClient, MieleOAuth
@@ -24,11 +25,11 @@ DEPENDENCIES = ['http']
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_NAME = 'Miele@Home'
+DEFAULT_NAME = 'Miele@home'
 DOMAIN = 'miele'
 DATA_OAUTH = 'oauth'
 DATA_CONFIG = 'config'
-DATA_CLIENT = 'client'
+DATA_DEVICES = 'devices'
 SCOPE = 'code'
 DEFAULT_CACHE_PATH = '.miele-token-cache'
 DEFAULT_LANG = 'en'
@@ -43,9 +44,7 @@ CONFIGURATOR_SUBMIT_CAPTION = 'I authorized successfully'
 CONFIGURATOR_DESCRIPTION = 'To link your Miele account, ' \
 'click the link, login, and authorize:'
 
-MIELE_COMPONENTS = [ 'binary_sensor', 'sensor' ]
-
-SCAN_INTERVAL = timedelta(seconds=5)
+MIELE_COMPONENTS = ['binary_sensor', 'sensor']
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
@@ -67,8 +66,17 @@ def request_configuration(hass, config, oauth):
         submit_caption=CONFIGURATOR_SUBMIT_CAPTION)
     return
 
-def create_sensor(client, home_device, lang):
-    return MieleDevice(client, home_device, lang)
+def create_sensor(client, hass, home_device, lang):
+    return MieleDevice(hass, client, home_device, lang)
+
+def _to_dict(items):
+    # Replace with map()
+    result = {}
+    for item in items:
+        ident = item['ident']
+        result[ident['deviceIdentLabel']['fabNumber']] = item
+
+    return result
 
 async def async_setup(hass, config):
     """Set up the Miele platform."""
@@ -100,12 +108,30 @@ async def async_setup(hass, config):
     component = EntityComponent(_LOGGER, DOMAIN, hass)
 
     client = MieleClient(hass.data[DOMAIN][DATA_OAUTH])
-    await component.async_add_entities([create_sensor(client, home_device, lang) for home_device in client.get_devices(lang)], False)
+    hass.data[DOMAIN][DATA_DEVICES] = _to_dict(client.get_devices(lang))
+
+    devices = [create_sensor(client, hass, home_device, lang) for k, home_device in hass.data[DOMAIN][DATA_DEVICES].items()]
+    await component.async_add_entities(devices, False)
     
     for component in MIELE_COMPONENTS:
         load_platform(hass, component, DOMAIN, {}, config)
 
-    hass.data[DOMAIN][DATA_CLIENT] = client
+    def refresh_devices(event_time):
+        # _LOGGER.info("Attempting to update Miele devices")
+        device_state = client.get_devices()
+        if device_state is None:
+            _LOGGER.error("Did not receive Miele devices")
+        else:
+            hass.data[DOMAIN][DATA_DEVICES] = _to_dict(device_state)
+            for device in devices:
+               device.async_schedule_update_ha_state(True)
+
+            for component in MIELE_COMPONENTS:
+                platform = get_platform(hass, component, DOMAIN)
+                platform.update_device_state()
+
+    interval = timedelta(seconds=5)
+    async_track_time_interval(hass, refresh_devices, interval)
 
     return True
 
@@ -131,7 +157,8 @@ class MieleAuthCallbackView(HomeAssistantView):
         hass.async_add_job(async_setup, hass, self.config)
 
 class MieleDevice(Entity):
-    def __init__(self, client, home_device, lang):
+    def __init__(self, hass, client, home_device, lang):
+        self._hass = hass
         self._client = client
         self._home_device = home_device
         self._lang = lang
@@ -179,7 +206,8 @@ class MieleDevice(Entity):
         
         return result
 
-    def update(self):        
-        # _LOGGER.info(f'Updating Miele {self.unique_id}')
-        self._home_device = self._client.get_device(self.unique_id)
-        return
+    async def async_update(self):        
+        if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:
+            _LOGGER.error(' Miele device not found: {}'.format(self.unique_id))
+        else:
+            self._home_device = self._hass.data[DOMAIN][DATA_DEVICES][self.unique_id]

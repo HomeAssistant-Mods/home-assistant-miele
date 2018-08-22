@@ -3,8 +3,8 @@ import logging
 
 from datetime import timedelta
 
+from requests.exceptions import ConnectionError
 from requests_oauthlib import OAuth2Session
-from homeassistant.util import Throttle
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -13,27 +13,23 @@ class MieleClient(object):
 
     def __init__(self, session):
         self._session = session
-        self._cached_devices = {}
 
-    @Throttle(timedelta(seconds=5))
     def _get_devices_raw(self, lang):
-        _LOGGER.info('Requesting Miele device update')
-        devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
-        if devices.status_code != 200:
-            _LOGGER.error(f'Failed to retrieve devices: {devices.status_code}')
-            return None
+        _LOGGER.debug('Requesting Miele device update')
+        try:
+            devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
+            if devices.status_code != 200:
+                _LOGGER.error(f'Failed to retrieve devices: {devices.status_code}')
+                return None
 
-        return devices.json()
+            return devices.json()
 
-    def _get_devices_cached(self, lang):
-        result = self._get_devices_raw(lang)
-        if result is not None:
-            self._cached_devices = result
-
-        return self._cached_devices
+        except ConnectionError as err:
+             _LOGGER.error('Failed to retrieve Miele decvices: {0}'.format(err))
+             return None
 
     def get_devices(self, lang='en'):
-        home_devices = self._get_devices_cached(lang)
+        home_devices = self._get_devices_raw(lang)
 
         result = []
         for home_device in home_devices:
@@ -42,7 +38,7 @@ class MieleClient(object):
         return result   
 
     def get_device(self, device_id, lang='en'):
-        devices = self._get_devices_cached(lang)
+        devices = self._get_devices_raw(lang)
         if devices is not None:
             return devices[device_id]
 
@@ -76,7 +72,6 @@ class MieleOAuth(object):
     def authorization_url(self):
         return self._session.authorization_url(MieleOAuth.OAUTH_AUTHORIZE_URL, state='login')
         
-
     def get_access_token(self, client_code):
         token = self._session.fetch_token(
             MieleOAuth.OAUTH_TOKEN_URL,
