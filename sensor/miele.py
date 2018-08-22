@@ -39,12 +39,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
         sensors = []
         if 'status' in device_state:
-            sensors.append(MieleLocalizedSensor(hass, device, 'status'))
-
-        if 'programType' in device_state:
-            sensors.append(MieleRawSensor(hass, device, 'programType'))
-        if 'programPhase' in device_state:
-            sensors.append(MieleRawSensor(hass, device, 'programPhase'))
+            sensors.append(MieleStatusSensor(hass, device, 'status'))
 
         if 'targetTemperature' in device_state:
             for i, val in enumerate(device_state['targetTemperature']):
@@ -107,7 +102,7 @@ class MieleRawSensor(Entity):
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
-class MieleLocalizedSensor(MieleRawSensor):
+class MieleStatusSensor(MieleRawSensor):
     def __init(self, client, device, key):
         pass
 
@@ -119,6 +114,20 @@ class MieleLocalizedSensor(MieleRawSensor):
             result = self._device['state']['status']['value_raw']
 
         return result
+
+    @property
+    def device_state_attributes(self):
+        """Attributes."""
+        device_state = self._device['state']
+
+        attributes = {}
+        if 'programType' in device_state:
+            attributes['programType'] = device_state['programType']['value_raw']
+        if 'programPhase' in device_state:
+            attributes['programPhase'] = device_state['programPhase']['value_raw']
+
+        return attributes
+
 
 class MieleTimeSensor(MieleRawSensor):
     def __init(self, hass, device, key):
