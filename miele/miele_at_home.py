@@ -30,6 +30,8 @@ class MieleClient(object):
 
     def get_devices(self, lang='en'):
         home_devices = self._get_devices_raw(lang)
+        if home_devices is None:
+            return None
 
         result = []
         for home_device in home_devices:
@@ -39,6 +41,9 @@ class MieleClient(object):
 
     def get_device(self, device_id, lang='en'):
         devices = self._get_devices_raw(lang)
+        if devices is None:
+            return None
+
         if devices is not None:
             return devices[device_id]
 
