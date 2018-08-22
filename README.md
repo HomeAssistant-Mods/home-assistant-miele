@@ -1,14 +1,16 @@
 # Home Assistant support for Miele@home connected appliances
 
-This project exposes Miele state information of appliances connected to a Miele user account. This is achieved by communicating with the Miele Cloud Service, which exposes both applicances connected to a Miele@home Gateway XGW3000, as well as those devices connected via WiFi Con@act.
+## Introduction
 
-# Prerequisite
+This project exposes Miele state information of appliances connected to a Miele user account. This is achieved by communicating with the Miele Cloud Service, which exposes both applicances connected to a Miele@home Gateway XGW3000, as well as those devices connected via WiFi Con@ct.
+
+## Prerequisite
 
 * A running version of [Home Assistant](https://home-assistant.io). While earlier versions may work, the custom component has been developed and tested with version 0.76.x.
 * The ```requests_oauthlib```# library as part of your HA installation. Please install via ```pip3 install requests_oauthlib```
 * Following the [instructions on the Miele developer site](https://www.miele.com/developer/getinvolved.html), you need to request your personal ```ClientID``` and ```ClientSecret```.
 
-# Installation of the custom component
+## Installation of the custom component
 
 * Copy the content of this repository into your ```custom_components``` folder, which is sa subdirectory of your Home Assistant configuration directory. By default, this directory is located under ```~/.home-assistant```. The structure of the ```custom_components``` directory should look like this afterwards:
 
@@ -37,6 +39,6 @@ miele:
 
 Done. If you follow all the instructions, the Miele integration should be up and running. All Miele devices that you can see in your Mobile application should now be also visible in Home Assistant (miele.*). In addition, there will be a number of ```binary_sensors``` and ```sensors``` that can be used for automation.
 
-# Questions
+## Questions
 
 Please see the [Miele@home, miele@mobile component](https://community.home-assistant.io/t/miele-home-miele-mobile-component/64508) discussion thread on the Home Assistant community site.
