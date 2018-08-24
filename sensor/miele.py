@@ -1,6 +1,6 @@
 import logging
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from homeassistant.helpers.entity import Entity
 
@@ -30,6 +30,15 @@ def _map_key(key):
     elif key == 'startTime':
         return 'Start Time'
 
+def _to_seconds(time_array):
+    if len(time_array) == 3:
+        return time_array[0] * 3600 + time_array[1] * 60 + time_array[2]
+    elif len(time_array) == 2:
+        return time_array[0] * 3600 + time_array[1] * 60
+    else:
+        return 0
+
+# pylint: disable=W0612
 def setup_platform(hass, config, add_devices, discovery_info=None):
     global ALL_DEVICES
     
@@ -125,6 +134,21 @@ class MieleStatusSensor(MieleRawSensor):
             attributes['programType'] = device_state['programType']['value_raw']
         if 'programPhase' in device_state:
             attributes['programPhase'] = device_state['programPhase']['value_raw']
+
+        if 'remainingTime' in device_state and 'elapsedTime' in device_state:
+            remainingTime = _to_seconds(device_state['remainingTime'])
+            elapsedTime = _to_seconds(device_state['elapsedTime'])
+            
+            if (elapsedTime + remainingTime) == 0:
+                attributes['progress'] = None
+            else:
+                attributes['progress'] = round(elapsedTime / (elapsedTime + remainingTime) * 100, 1)
+
+        if 'remainingTime' in device_state:
+            remainingTime = _to_seconds(device_state['remainingTime'])
+
+            now = datetime.now()
+            attributes['finishTime'] = (now + timedelta(seconds=remainingTime)).strftime('%H:%M')
 
         return attributes
 
