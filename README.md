@@ -20,7 +20,7 @@ This project exposes Miele state information of appliances connected to a Miele 
 - sensors
     - miele.py
 - miele
-    - __init__.oy
+    - __init__.py
     - miele_at_home.py
 ```
 

@@ -18,6 +18,10 @@ class MieleClient(object):
         _LOGGER.debug('Requesting Miele device update')
         try:
             devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
+            if devices.status_code == 401:
+                if self._session.refresh_token():
+                    return self._get_devices_raw(lang)    
+
             if devices.status_code != 200:
                 _LOGGER.error(f'Failed to retrieve devices: {devices.status_code}')
                 return None
@@ -52,7 +56,7 @@ class MieleClient(object):
 
 class MieleOAuth(object):
     '''
-    Implements Authorization Code Flow for Miele@Home implementation.
+    Implements Authorization Code Flow for Miele@home implementation.
     '''
 
     OAUTH_AUTHORIZE_URL = 'https://api.mcs3.miele.com/thirdparty/login'
@@ -63,11 +67,16 @@ class MieleOAuth(object):
         self._client_secret = client_secret
         self._cache_path = cache_path
 
-        token = self._get_cached_token()
+        self._token = self._get_cached_token()
 
         self._session = OAuth2Session(self._client_id,
             auto_refresh_url=MieleOAuth.OAUTH_TOKEN_URL,
-            redirect_uri=redirect_uri, token=token)
+            redirect_uri=redirect_uri, 
+            token=self._token, 
+            token_updater=self._save_token)
+
+        if self.authorized:
+            self.refresh_token()
 
     @property
     def authorized(self):
@@ -86,6 +95,13 @@ class MieleOAuth(object):
 
         return token
 
+    def refresh_token(self):
+        body = 'client_id={}&client_secret={}&'.format(self._client_id, self._client_secret)
+        self._token = self._session.refresh_token(MieleOAuth.OAUTH_TOKEN_URL,
+            body=body,
+            refresh_token=self._token['refresh_token'])
+        self._save_token(self._token)
+            
     def _get_cached_token(self):
         token = None
         if self._cache_path:
