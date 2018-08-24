@@ -19,6 +19,7 @@ class MieleClient(object):
         try:
             devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
             if devices.status_code == 401:
+                _LOGGER.info("Request unauthorized - attempting token refresh")
                 if self._session.refresh_token():
                     return self._get_devices_raw(lang)    
 
