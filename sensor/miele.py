@@ -107,7 +107,7 @@ class MieleRawSensor(Entity):
 
     async def async_update(self): 
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
-            _LOGGER.error(' Miele device not found: {}'.format(self.device_id))
+            _LOGGER.error('Miele device disappeared: {}'.format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
@@ -135,20 +135,24 @@ class MieleStatusSensor(MieleRawSensor):
         if 'programPhase' in device_state:
             attributes['programPhase'] = device_state['programPhase']['value_raw']
 
+        # Programs will only be running of both remainingTime and elapsedTime indicate 
+        # a value > 0
         if 'remainingTime' in device_state and 'elapsedTime' in device_state:
             remainingTime = _to_seconds(device_state['remainingTime'])
             elapsedTime = _to_seconds(device_state['elapsedTime'])
-            
+
+            # Calculate progress            
             if (elapsedTime + remainingTime) == 0:
                 attributes['progress'] = None
             else:
                 attributes['progress'] = round(elapsedTime / (elapsedTime + remainingTime) * 100, 1)
 
-        if 'remainingTime' in device_state:
-            remainingTime = _to_seconds(device_state['remainingTime'])
-
-            now = datetime.now()
-            attributes['finishTime'] = (now + timedelta(seconds=remainingTime)).strftime('%H:%M')
+            # Calculate end time
+            if remainingTime == 0:
+                attributes['finishTime'] = None
+            else:
+                now = datetime.now()
+                attributes['finishTime'] = (now + timedelta(seconds=remainingTime)).strftime('%H:%M')
 
         return attributes
 
@@ -209,6 +213,8 @@ class MieleTemperatureSensor(Entity):
         """Return the unit of measurement of this entity, if any."""
         if self._device['state'][self._key][self._index]['unit'] == 'Celsius':
             return "°C"
+        elif self._device['state'][self._key][self._index]['unit'] == 'Fahrenheit':
+            return "°F"
 
     @property
     def device_class(self):
@@ -216,6 +222,6 @@ class MieleTemperatureSensor(Entity):
 
     async def async_update(self): 
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
-            _LOGGER.error(' Miele device not found: {}'.format(self.device_id))
+            _LOGGER.error(' Miele device disappeared: {}'.format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
