@@ -19,12 +19,12 @@ class MieleClient(object):
         try:
             devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
             if devices.status_code == 401:
-                _LOGGER.info("Request unauthorized - attempting token refresh")
+                _LOGGER.info('Request unauthorized - attempting token refresh')
                 if self._session.refresh_token():
                     return self._get_devices_raw(lang)    
 
             if devices.status_code != 200:
-                _LOGGER.error(f'Failed to retrieve devices: {devices.status_code}')
+                _LOGGER.error('Failed to retrieve devices: {}'.format(devices.status_code))
                 return None
 
             return devices.json()
@@ -124,5 +124,5 @@ class MieleOAuth(object):
                 f.write(json.dumps(token))
                 f.close()
             except IOError:
-                _LOGGER._warn(f'Couldn\'t write token cache to {self._cache_path}')
+                _LOGGER._warn('Couldn\'t write token cache to {0}'.format(self._cache_path))
                 pass

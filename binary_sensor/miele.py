@@ -92,7 +92,7 @@ class MieleBinarySensor(BinarySensorDevice):
 
     async def async_update(self): 
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
-            _LOGGER.error(' Miele device not found: {}'.format(self.device_id))
+            _LOGGER.error('Miele device not found: {}'.format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
