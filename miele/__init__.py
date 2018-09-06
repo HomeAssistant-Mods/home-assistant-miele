@@ -4,6 +4,7 @@ Support for Miele.
 import asyncio
 import logging
 
+from aiohttp import web
 from datetime import timedelta
 
 import voluptuous as vol
@@ -27,8 +28,10 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_NAME = 'Miele@home'
 DOMAIN = 'miele'
+
+_CONFIGURING = {}
+
 DATA_OAUTH = 'oauth'
-DATA_CONFIG = 'config'
 DATA_DEVICES = 'devices'
 SCOPE = 'code'
 DEFAULT_CACHE_PATH = '.miele-token-cache'
@@ -43,6 +46,7 @@ CONFIGURATOR_LINK_NAME = 'Link Miele account'
 CONFIGURATOR_SUBMIT_CAPTION = 'I authorized successfully'
 CONFIGURATOR_DESCRIPTION = 'To link your Miele account, ' \
 'click the link, login, and authorize:'
+CONFIGURATOR_DESCRIPTION_IMAGE='https://api.mcs3.miele.com/images/miele-logo-immer-besser.svg'
 
 MIELE_COMPONENTS = ['binary_sensor', 'sensor']
 
@@ -57,12 +61,29 @@ CONFIG_SCHEMA = vol.Schema({
 
 def request_configuration(hass, config, oauth):
     """Request Miele authorization."""
+    async def miele_configuration_callback(callback_data):
+        _LOGGER.warn(callback_data)
+
+        if not hass.data[DOMAIN][DATA_OAUTH].authorized:
+            configurator.async_notify_errors(
+                _CONFIGURING[DOMAIN],
+                'Failed to register, please try again.')
+            return
+
+        if DOMAIN in _CONFIGURING:
+            req_config = _CONFIGURING.pop(DOMAIN)
+            hass.components.configurator.async_request_done(req_config)
+
+        await async_setup(hass, config)
+
     configurator = hass.components.configurator
-    hass.data[DOMAIN][DATA_CONFIG] = configurator.async_request_config(
-        DEFAULT_NAME, lambda _: None,
+    _CONFIGURING[DOMAIN] = configurator.async_request_config(
+        DEFAULT_NAME, 
+        miele_configuration_callback,
         link_name=CONFIGURATOR_LINK_NAME,
         link_url=oauth.authorization_url,
         description=CONFIGURATOR_DESCRIPTION,
+        description_image=CONFIGURATOR_DESCRIPTION_IMAGE,
         submit_caption=CONFIGURATOR_SUBMIT_CAPTION)
     return
 
@@ -97,11 +118,6 @@ async def async_setup(hass, config):
         hass.http.register_view(MieleAuthCallbackView(config, hass.data[DOMAIN][DATA_OAUTH]))
         request_configuration(hass, config, hass.data[DOMAIN][DATA_OAUTH])
         return True
-
-    if DATA_CONFIG in hass.data[DOMAIN]:
-        configurator = hass.components.configurator
-        configurator.async_request_done(hass.data[DOMAIN][DATA_CONFIG])
-        del hass.data[DOMAIN][DATA_CONFIG]
 
     lang = config[DOMAIN].get(CONF_LANG, DEFAULT_LANG)
 
@@ -151,10 +167,21 @@ class MieleAuthCallbackView(HomeAssistantView):
     @callback
     def get(self, request):
         """Receive authorization token."""
-        hass = request.app['hass']
+
+        response_message = """Miele@home has been successfully authorized!
+        You can close this window now!"""
 
         self.oauth.get_access_token(request.query['code'])
-        hass.async_add_job(async_setup, hass, self.config)
+
+        html_response = """<html><head><title>Miele@home Auth</title></head>
+        <body><h1>{}</h1></body></html>""".format(response_message)
+
+        response = web.Response(
+            body=html_response, content_type='text/html', status=200,
+            headers=None)
+        response.enable_compression()
+
+        return response
 
 class MieleDevice(Entity):
     def __init__(self, hass, client, home_device, lang):
