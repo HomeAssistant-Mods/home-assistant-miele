@@ -85,7 +85,8 @@ class MieleOAuth(object):
 
     @property
     def authorization_url(self):
-        return self._session.authorization_url(MieleOAuth.OAUTH_AUTHORIZE_URL, state='login')
+        return self._session.authorization_url(MieleOAuth.OAUTH_AUTHORIZE_URL, state='login')[0]
+        
         
     def get_access_token(self, client_code):
         token = self._session.fetch_token(
