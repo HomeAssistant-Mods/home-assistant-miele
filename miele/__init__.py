@@ -36,14 +36,14 @@ DATA_DEVICES = 'devices'
 SCOPE = 'code'
 DEFAULT_CACHE_PATH = '.miele-token-cache'
 DEFAULT_LANG = 'en'
-AUTH_CALLBACK_PATH = '/api/miele'
-AUTH_CALLBACK_NAME = 'api:miele'
+AUTH_CALLBACK_PATH = '/api/miele/callback'
+AUTH_CALLBACK_NAME = 'api:miele:callback'
 CONF_CLIENT_ID = 'client_id'
 CONF_CLIENT_SECRET = 'client_secret'
 CONF_LANG = 'lang'
 CONF_CACHE_PATH = 'cache_path'
 CONFIGURATOR_LINK_NAME = 'Link Miele account'
-CONFIGURATOR_SUBMIT_CAPTION = 'I authorized successfully'
+CONFIGURATOR_SUBMIT_CAPTION = 'I have authorized Miele@home.'
 CONFIGURATOR_DESCRIPTION = 'To link your Miele account, ' \
 'click the link, login, and authorize:'
 CONFIGURATOR_DESCRIPTION_IMAGE='https://api.mcs3.miele.com/images/miele-logo-immer-besser.svg'
@@ -62,8 +62,6 @@ CONFIG_SCHEMA = vol.Schema({
 def request_configuration(hass, config, oauth):
     """Request Miele authorization."""
     async def miele_configuration_callback(callback_data):
-        _LOGGER.warn(callback_data)
-
         if not hass.data[DOMAIN][DATA_OAUTH].authorized:
             configurator.async_notify_errors(
                 _CONFIGURING[DOMAIN],
@@ -167,11 +165,34 @@ class MieleAuthCallbackView(HomeAssistantView):
     @callback
     def get(self, request):
         """Receive authorization token."""
+        hass = request.app['hass']
+
+        from oauthlib.oauth2.rfc6749.errors import MismatchingStateError
+        from oauthlib.oauth2.rfc6749.errors import MissingTokenError
 
         response_message = """Miele@home has been successfully authorized!
         You can close this window now!"""
 
-        self.oauth.get_access_token(request.query['code'])
+        result = None
+        if request.query.get('code') is not None:
+            try:
+                result = self.oauth.get_access_token(request.query['code'])
+            except MissingTokenError as error:
+                _LOGGER.error("Missing token: %s", error)
+                response_message = """Something went wrong when
+                attempting authenticating with Miele@home. The error
+                encountered was {}. Please try again!""".format(error)
+            except MismatchingStateError as error:
+                _LOGGER.error("Mismatched state, CSRF error: %s", error)
+                response_message = """Something went wrong when
+                attempting authenticating with Miele@home. The error
+                encountered was {}. Please try again!""".format(error)
+        else:
+            _LOGGER.error("Unknown error when authorizing")
+            response_message = """Something went wrong when
+                attempting authenticating with Miele@home.
+                An unknown error occurred. Please try again!
+                """
 
         html_response = """<html><head><title>Miele@home Auth</title></head>
         <body><h1>{}</h1></body></html>""".format(response_message)
