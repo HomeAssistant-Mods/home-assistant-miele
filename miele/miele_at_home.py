@@ -30,7 +30,7 @@ class MieleClient(object):
             return devices.json()
 
         except ConnectionError as err:
-             _LOGGER.error('Failed to retrieve Miele decvices: {0}'.format(err))
+             _LOGGER.error('Failed to retrieve Miele devices: {0}'.format(err))
              return None
 
     def get_devices(self, lang='en'):

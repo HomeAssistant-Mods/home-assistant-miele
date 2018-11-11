@@ -132,7 +132,7 @@ async def async_setup(hass, config):
 
     def refresh_devices(event_time):
         _LOGGER.debug("Attempting to update Miele devices")
-        device_state = client.get_devices()
+        device_state = client.get_devices(lang)
         if device_state is None:
             _LOGGER.error("Did not receive Miele devices")
         else:
