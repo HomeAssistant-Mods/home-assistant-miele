@@ -7,8 +7,8 @@ This project exposes Miele state information of appliances connected to a Miele 
 ## Prerequisite
 
 * A running version of [Home Assistant](https://home-assistant.io). While earlier versions may work, the custom component has been developed and tested with version 0.76.x.
-* The ```requests_oauthlib```# library as part of your HA installation. Please install via ```pip3 install requests_oauthlib```
-( For Hassbian you need to install this via :
+* The ```requests_oauthlib``` library as part of your HA installation. Please install via ```pip3 install requests_oauthlib```.
+  For Hassbian you need to install this via :
 ```
 cd /srv/
 sudo chown homeassistant:homeassistant homeassistant
@@ -18,7 +18,6 @@ source bin/activate
 pip3 install requests_oauthlib
 ```
 
-)
 * Following the [instructions on the Miele developer site](https://www.miele.com/developer/getinvolved.html), you need to request your personal ```ClientID``` and ```ClientSecret```.
 
 ## Installation of the custom component
