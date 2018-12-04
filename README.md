@@ -8,11 +8,22 @@ This project exposes Miele state information of appliances connected to a Miele 
 
 * A running version of [Home Assistant](https://home-assistant.io). While earlier versions may work, the custom component has been developed and tested with version 0.76.x.
 * The ```requests_oauthlib```# library as part of your HA installation. Please install via ```pip3 install requests_oauthlib```
+( For Hassbian you need to install this via :
+```
+cd /srv/
+sudo chown homeassistant:homeassistant homeassistant
+sudo su -s /bin/bash homeassistant
+cd /srv/homeassistant
+source bin/activate
+pip3 install requests_oauthlib
+```
+
+)
 * Following the [instructions on the Miele developer site](https://www.miele.com/developer/getinvolved.html), you need to request your personal ```ClientID``` and ```ClientSecret```.
 
 ## Installation of the custom component
 
-* Copy the content of this repository into your ```custom_components``` folder, which is sa subdirectory of your Home Assistant configuration directory. By default, this directory is located under ```~/.home-assistant```. The structure of the ```custom_components``` directory should look like this afterwards:
+* Copy the content of this repository into your ```custom_components``` folder, which is a subdirectory of your Home Assistant configuration directory. By default, this directory is located under ```~/.home-assistant```. The structure of the ```custom_components``` directory should look like this afterwards:
 
 ```
 - binary_sensors
