@@ -131,9 +131,20 @@ class MieleStatusSensor(MieleRawSensor):
 
         attributes = {}
         if 'programType' in device_state:
-            attributes['programType'] = device_state['programType']['value_raw']
+            attributes['programType'] = device_state['programType']['value_localized']
+            attributes['rawProgramType'] = device_state['programType']['value_raw']
+
         if 'programPhase' in device_state:
-            attributes['programPhase'] = device_state['programPhase']['value_raw']
+            attributes['programPhase'] = device_state['programPhase']['value_localized']
+            attributes['rawProgramPhase'] = device_state['programPhase']['value_raw']
+
+        if 'dryingStep' in device_state:
+            attributes['dryingStep'] = device_state['dryingStep']['value_localized']
+            attributes['rawDryingStep'] = device_state['dryingStep']['value_raw']
+
+        if 'ventilationStep' in device_state:
+            attributes['ventilationStep'] = device_state['ventilationStep']['value_localized']
+            attributes['rawVentilationStep'] = device_state['ventilationStep']['value_raw']
 
         # Programs will only be running of both remainingTime and elapsedTime indicate 
         # a value > 0
