@@ -92,6 +92,7 @@ class MieleOAuth(object):
         token = self._session.fetch_token(
             MieleOAuth.OAUTH_TOKEN_URL,
             code=client_code,
+            include_client_id=True,
             client_secret=self._client_secret)
         self._save_token(token)
 
