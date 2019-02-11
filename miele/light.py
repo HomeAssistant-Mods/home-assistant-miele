@@ -49,7 +49,7 @@ class MieleLight(Light):
     @property
     def unique_id(self):
         """Return the unique ID for this light."""
-        return self.device_id + '_' + self._ha_key
+        return self.device_id
 
     @property
     def name(self):
@@ -58,9 +58,9 @@ class MieleLight(Light):
         
         result = ident['deviceName']
         if len(result) == 0:
-            return ident['type']['value_localized'] + ' ' + self._ha_key
+            return ident['type']['value_localized']
         else:
-            return result + ' ' + self._ha_key
+            return result
 
     @property
     def is_on(self):
