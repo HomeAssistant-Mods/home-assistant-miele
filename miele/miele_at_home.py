@@ -10,6 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class MieleClient(object):
     DEVICES_URL = 'https://api.mcs3.miele.com/v1/devices'
+    ACTION_URL = 'https://api.mcs3.miele.com/v1/devices/{0}/actions'
 
     def __init__(self, session):
         self._session = session
@@ -53,6 +54,28 @@ class MieleClient(object):
             return devices[device_id]
 
         return None
+
+    def action(self, device_id, body):
+        _LOGGER.debug('Executing device action for {}'.format(device_id))
+        try:
+            headers = { 'Content-Type' : 'application/json' }
+            result = self._session._session.put(MieleClient.ACTION_URL.format(device_id), data=json.dumps(body), headers=headers)
+            if result.status_code == 401:
+                _LOGGER.info('Request unauthorized - attempting token refresh')
+                if self._session.refresh_token():
+                    return self.action(device_id, body)    
+
+            if result.status_code == 200:
+                return result.json()
+            elif result.status_code == 204:
+                return None
+            else:
+                _LOGGER.error('Failed to execute device action for {}: {} {}'.format(device_id, result.status_code, result.json()))
+                return None
+
+        except ConnectionError as err:
+             _LOGGER.error('Failed to execute device action: {}'.format(err))
+             return None
 
 
 class MieleOAuth(object):

@@ -25,13 +25,12 @@ pip3 install requests_oauthlib
 * Copy the content of this repository into your ```custom_components``` folder, which is a subdirectory of your Home Assistant configuration directory. By default, this directory is located under ```~/.home-assistant```. The structure of the ```custom_components``` directory should look like this afterwards:
 
 ```
-- binary_sensors
-    - miele.py
-- sensors
-    - miele.py
 - miele
     - __init__.py
     - miele_at_home.py
+    - binary_sensor.py
+    - light.py
+    - sensor.py
 ```
 
 * Enabled the new platform in your ```configuration.yaml```:

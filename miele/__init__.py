@@ -26,6 +26,8 @@ DEPENDENCIES = ['http']
 
 _LOGGER = logging.getLogger(__name__)
 
+DEVICES = []
+
 DEFAULT_NAME = 'Miele@home'
 DOMAIN = 'miele'
 
@@ -33,6 +35,8 @@ _CONFIGURING = {}
 
 DATA_OAUTH = 'oauth'
 DATA_DEVICES = 'devices'
+DATA_CLIENT = 'client'
+SERVICE_ACTION = 'action'
 SCOPE = 'code'
 DEFAULT_CACHE_PATH = '.miele-token-cache'
 DEFAULT_LANG = 'en'
@@ -48,7 +52,7 @@ CONFIGURATOR_DESCRIPTION = 'To link your Miele account, ' \
 'click the link, login, and authorize:'
 CONFIGURATOR_DESCRIPTION_IMAGE='https://api.mcs3.miele.com/images/miele-logo-immer-besser.svg'
 
-MIELE_COMPONENTS = ['binary_sensor', 'sensor']
+MIELE_COMPONENTS = ['binary_sensor', 'light', 'sensor']
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
@@ -122,10 +126,11 @@ async def async_setup(hass, config):
     component = EntityComponent(_LOGGER, DOMAIN, hass)
 
     client = MieleClient(hass.data[DOMAIN][DATA_OAUTH])
+    hass.data[DOMAIN][DATA_CLIENT] = client
     hass.data[DOMAIN][DATA_DEVICES] = _to_dict(client.get_devices(lang))
 
-    devices = [create_sensor(client, hass, home_device, lang) for k, home_device in hass.data[DOMAIN][DATA_DEVICES].items()]
-    await component.async_add_entities(devices, False)
+    DEVICES.extend([create_sensor(client, hass, home_device, lang) for k, home_device in hass.data[DOMAIN][DATA_DEVICES].items()])
+    await component.async_add_entities(DEVICES, False)
     
     for component in MIELE_COMPONENTS:
         load_platform(hass, component, DOMAIN, {}, config)
@@ -137,18 +142,44 @@ async def async_setup(hass, config):
             _LOGGER.error("Did not receive Miele devices")
         else:
             hass.data[DOMAIN][DATA_DEVICES] = _to_dict(device_state)
-            for device in devices:
+            for device in DEVICES:
                device.async_schedule_update_ha_state(True)
 
             for component in MIELE_COMPONENTS:
                 platform = get_platform(hass, component, DOMAIN)
                 platform.update_device_state()
 
+    register_services(hass)
+
     interval = timedelta(seconds=5)
     async_track_time_interval(hass, refresh_devices, interval)
 
     return True
 
+def register_services(hass):
+    """Register all services for Miele devices."""
+    hass.services.async_register(
+        DOMAIN, SERVICE_ACTION, _action_service)
+
+async def _apply_service(service, service_func, *service_func_args):
+    entity_ids = service.data.get('entity_id')
+
+    _devices = []
+    if entity_ids:
+        _devices.extend([device for device in DEVICES
+                         if device.entity_id in entity_ids])
+
+    device_ids = service.data.get('device_id')
+    if device_ids:
+        _devices.extend([device for device in DEVICES
+                         if device.unique_id in device_ids])
+
+    for device in _devices:
+        await service_func(device, *service_func_args)  
+
+async def _action_service(service):
+    body = service.data.get('body')
+    await _apply_service(service, MieleDevice.action, body)
 
 class MieleAuthCallbackView(HomeAssistantView):
     """Miele Authorization Callback View."""
@@ -253,6 +284,9 @@ class MieleDevice(Entity):
         result['gateway_version'] = self._home_device['ident']['xkmIdentLabel']['releaseVersion']
         
         return result
+
+    async def action(self, action):
+        self._client.action(self.unique_id, action)
 
     async def async_update(self):        
         if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:

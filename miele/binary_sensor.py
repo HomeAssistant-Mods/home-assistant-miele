@@ -20,8 +20,6 @@ def _map_key(key):
         return 'Failure'
     elif key == 'signalDoor':
         return 'Door'
-    elif key == 'light':
-        return 'Light'
 
 # pylint: disable=W0612
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -39,8 +37,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             binary_devices.append(MieleBinarySensor(hass, device, 'signalFailure'))
         if 'signalDoor' in device_state:
             binary_devices.append(MieleBinarySensor(hass, device, 'signalDoor'))
-        if 'light' in device_state:
-            binary_devices.append(MieleLightSensor(hass, device, 'light'))
 
         add_devices(binary_devices)
         ALL_DEVICES = ALL_DEVICES + binary_devices
@@ -95,14 +91,3 @@ class MieleBinarySensor(BinarySensorDevice):
             _LOGGER.error('Miele device not found: {}'.format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
-
-
-class MieleLightSensor(MieleBinarySensor):
-    @property
-    def is_on(self):
-        """Return the state of the sensor."""
-        return self._device['state'][self._key] == 2
-
-    @property
-    def device_class(self):
-        return 'light'
