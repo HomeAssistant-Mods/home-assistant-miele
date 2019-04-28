@@ -6,11 +6,11 @@ import logging
 
 from aiohttp import web
 from datetime import timedelta
+from importlib import import_module
 
 import voluptuous as vol
 
 from homeassistant.core import callback
-from homeassistant.loader import get_platform
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.entity import Entity
@@ -146,7 +146,7 @@ async def async_setup(hass, config):
                device.async_schedule_update_ha_state(True)
 
             for component in MIELE_COMPONENTS:
-                platform = get_platform(hass, component, DOMAIN)
+                platform = import_module('.{}'.format(component), __name__)
                 platform.update_device_state()
 
     register_services(hass)
