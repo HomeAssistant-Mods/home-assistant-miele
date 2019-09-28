@@ -24,6 +24,9 @@ _LOGGER = logging.getLogger(__name__)
 
 DEVICES = []
 
+DEFAULT_NAME = 'Miele@home'
+DOMAIN = 'miele'
+
 _CONFIGURING = {}
 
 DATA_OAUTH = 'oauth'
