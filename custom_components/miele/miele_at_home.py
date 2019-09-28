@@ -25,7 +25,7 @@ class MieleClient(object):
                     return self._get_devices_raw(lang)    
 
             if devices.status_code != 200:
-                _LOGGER.error('Failed to retrieve devices: {}'.format(devices.status_code))
+                _LOGGER.debug('Failed to retrieve devices: {}'.format(devices.status_code))
                 return None
 
             return devices.json()
