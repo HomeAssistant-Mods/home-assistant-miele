@@ -20,16 +20,9 @@ import homeassistant.helpers.config_validation as cv
 
 from .miele_at_home import MieleClient, MieleOAuth
 
-REQUIREMENTS = ['requests_oauthlib']
-
-DEPENDENCIES = ['http']
-
 _LOGGER = logging.getLogger(__name__)
 
 DEVICES = []
-
-DEFAULT_NAME = 'Miele@home'
-DOMAIN = 'miele'
 
 _CONFIGURING = {}
 

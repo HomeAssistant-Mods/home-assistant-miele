@@ -1,0 +1,12 @@
+{
+  "domain": "miele",
+  "name": "Miele@home",
+  "documentation": "https://github.com/docbobo/home-assistant-miele",
+  "requirements": [
+    "requests_oauthlib"
+  ],
+  "dependencies": [
+    "http"
+  ],
+  "codeowners": ["docbobo"]
+}
