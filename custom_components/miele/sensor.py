@@ -174,6 +174,14 @@ class MieleStatusSensor(MieleRawSensor):
                 now = datetime.now()
                 attributes['finishTime'] = (now + timedelta(seconds=startTime) + timedelta(seconds=remainingTime)).strftime('%H:%M')
 
+          # Calculate start time
+            if startTime == 0:
+                now = datetime.now()
+                attributes['kickoffTime'] = (now - timedelta(seconds=elapsedTime)).strftime('%H:%M')
+            else:
+                now = datetime.now()
+                attributes['kickoffTime'] = (now + timedelta(seconds=startTime)).strftime('%H:%M')
+
         return attributes
 
 
