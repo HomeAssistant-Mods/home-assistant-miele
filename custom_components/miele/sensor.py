@@ -172,7 +172,7 @@ class MieleStatusSensor(MieleRawSensor):
                 attributes['finishTime'] = None
             else:
                 now = datetime.now()
-                attributes['finishTime'] = (now + timedelta(seconds=remainingTime)).strftime('%H:%M')
+                attributes['finishTime'] = (now + timedelta(seconds=startTime) + timedelta(seconds=remainingTime)).strftime('%H:%M')
 
         return attributes
 
