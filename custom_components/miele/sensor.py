@@ -142,6 +142,10 @@ class MieleStatusSensor(MieleRawSensor):
             attributes['dryingStep'] = device_state['dryingStep']['value_localized']
             attributes['rawDryingStep'] = device_state['dryingStep']['value_raw']
 
+        if 'spinningSpeed' in device_state:
+            attributes['spinningSpeed'] = device_state['spinningSpeed']['value_localized']
+            attributes['rawSpinningSpeed'] = device_state['spinningSpeed']['value_raw']
+
         if 'ventilationStep' in device_state:
             attributes['ventilationStep'] = device_state['ventilationStep']['value_localized']
             attributes['rawVentilationStep'] = device_state['ventilationStep']['value_raw']
