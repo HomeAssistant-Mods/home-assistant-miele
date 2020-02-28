@@ -156,6 +156,11 @@ class MieleStatusSensor(MieleRawSensor):
             remainingTime = _to_seconds(device_state['remainingTime'])
             elapsedTime = _to_seconds(device_state['elapsedTime'])
 
+            if 'startTime' in device_state:
+                startTime = _to_seconds(device_state['startTime'])
+            else:
+                startTime = 0
+
             # Calculate progress            
             if (elapsedTime + remainingTime) == 0:
                 attributes['progress'] = None
