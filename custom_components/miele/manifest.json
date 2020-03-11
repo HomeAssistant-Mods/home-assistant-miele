@@ -8,5 +8,5 @@
   "dependencies": [
     "http"
   ],
-  "codeowners": ["docbobo"]
+  "codeowners": ["docbobo, Kloknibor"]
 }
