@@ -142,6 +142,10 @@ class MieleStatusSensor(MieleRawSensor):
             attributes['dryingStep'] = device_state['dryingStep']['value_localized']
             attributes['rawDryingStep'] = device_state['dryingStep']['value_raw']
 
+        if 'spinningSpeed' in device_state:
+            attributes['spinningSpeed'] = device_state['spinningSpeed']['value_localized']
+            attributes['rawSpinningSpeed'] = device_state['spinningSpeed']['value_raw']
+
         if 'ventilationStep' in device_state:
             attributes['ventilationStep'] = device_state['ventilationStep']['value_localized']
             attributes['rawVentilationStep'] = device_state['ventilationStep']['value_raw']
@@ -151,6 +155,11 @@ class MieleStatusSensor(MieleRawSensor):
         if 'remainingTime' in device_state and 'elapsedTime' in device_state:
             remainingTime = _to_seconds(device_state['remainingTime'])
             elapsedTime = _to_seconds(device_state['elapsedTime'])
+
+            if 'startTime' in device_state:
+                startTime = _to_seconds(device_state['startTime'])
+            else:
+                startTime = 0
 
             # Calculate progress            
             if (elapsedTime + remainingTime) == 0:
@@ -163,7 +172,15 @@ class MieleStatusSensor(MieleRawSensor):
                 attributes['finishTime'] = None
             else:
                 now = datetime.now()
-                attributes['finishTime'] = (now + timedelta(seconds=remainingTime)).strftime('%H:%M')
+                attributes['finishTime'] = (now + timedelta(seconds=startTime) + timedelta(seconds=remainingTime)).strftime('%H:%M')
+
+          # Calculate start time
+            if startTime == 0:
+                now = datetime.now()
+                attributes['kickoffTime'] = (now - timedelta(seconds=elapsedTime)).strftime('%H:%M')
+            else:
+                now = datetime.now()
+                attributes['kickoffTime'] = (now + timedelta(seconds=startTime)).strftime('%H:%M')
 
         return attributes
 
