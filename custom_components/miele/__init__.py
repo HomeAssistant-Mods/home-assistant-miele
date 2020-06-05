@@ -123,17 +123,18 @@ async def async_setup(hass, config):
 
     client = MieleClient(hass.data[DOMAIN][DATA_OAUTH])
     hass.data[DOMAIN][DATA_CLIENT] = client
-    hass.data[DOMAIN][DATA_DEVICES] = _to_dict(client.get_devices(lang))
+    data_get_devices = await client.get_devices(lang)
+    hass.data[DOMAIN][DATA_DEVICES] = _to_dict(data_get_devices)
 
     DEVICES.extend([create_sensor(client, hass, home_device, lang) for k, home_device in hass.data[DOMAIN][DATA_DEVICES].items()])
     await component.async_add_entities(DEVICES, False)
-    
+
     for component in MIELE_COMPONENTS:
         load_platform(hass, component, DOMAIN, {}, config)
 
-    def refresh_devices(event_time):
+    async def refresh_devices(event_time):
         _LOGGER.debug("Attempting to update Miele devices")
-        device_state = client.get_devices(lang)
+        device_state = await client.get_devices(lang)
         if device_state is None:
             _LOGGER.error("Did not receive Miele devices")
         else:

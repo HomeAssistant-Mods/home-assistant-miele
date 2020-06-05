@@ -15,14 +15,14 @@ class MieleClient(object):
     def __init__(self, session):
         self._session = session
 
-    def _get_devices_raw(self, lang):
+    async def _get_devices_raw(self, lang):
         _LOGGER.debug('Requesting Miele device update')
         try:
             devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
             if devices.status_code == 401:
                 _LOGGER.info('Request unauthorized - attempting token refresh')
                 if self._session.refresh_token():
-                    return self._get_devices_raw(lang)    
+                    return self._get_devices_raw(lang)
 
             if devices.status_code != 200:
                 _LOGGER.debug('Failed to retrieve devices: {}'.format(devices.status_code))
@@ -34,8 +34,8 @@ class MieleClient(object):
              _LOGGER.error('Failed to retrieve Miele devices: {0}'.format(err))
              return None
 
-    def get_devices(self, lang='en'):
-        home_devices = self._get_devices_raw(lang)
+    async def get_devices(self, lang='en'):
+        home_devices = await self._get_devices_raw(lang)
         if home_devices is None:
             return None
 
@@ -43,7 +43,7 @@ class MieleClient(object):
         for home_device in home_devices:
             result.append(home_devices[home_device])
 
-        return result   
+        return result
 
     def get_device(self, device_id, lang='en'):
         devices = self._get_devices_raw(lang)
@@ -63,7 +63,7 @@ class MieleClient(object):
             if result.status_code == 401:
                 _LOGGER.info('Request unauthorized - attempting token refresh')
                 if self._session.refresh_token():
-                    return self.action(device_id, body)    
+                    return self.action(device_id, body)
 
             if result.status_code == 200:
                 return result.json()
@@ -95,8 +95,8 @@ class MieleOAuth(object):
 
         self._session = OAuth2Session(self._client_id,
             auto_refresh_url=MieleOAuth.OAUTH_TOKEN_URL,
-            redirect_uri=redirect_uri, 
-            token=self._token, 
+            redirect_uri=redirect_uri,
+            token=self._token,
             token_updater=self._save_token)
 
         if self.authorized:
@@ -109,8 +109,8 @@ class MieleOAuth(object):
     @property
     def authorization_url(self):
         return self._session.authorization_url(MieleOAuth.OAUTH_AUTHORIZE_URL, state='login')[0]
-        
-        
+
+
     def get_access_token(self, client_code):
         token = self._session.fetch_token(
             MieleOAuth.OAUTH_TOKEN_URL,
@@ -121,13 +121,13 @@ class MieleOAuth(object):
 
         return token
 
-    def refresh_token(self):
+    async def refresh_token(self):
         body = 'client_id={}&client_secret={}&'.format(self._client_id, self._client_secret)
-        self._token = self._session.refresh_token(MieleOAuth.OAUTH_TOKEN_URL,
+        self._token = await self._session.refresh_token(MieleOAuth.OAUTH_TOKEN_URL,
             body=body,
             refresh_token=self._token['refresh_token'])
         self._save_token(self._token)
-            
+
     def _get_cached_token(self):
         token = None
         if self._cache_path:
@@ -139,7 +139,7 @@ class MieleOAuth(object):
 
             except IOError:
                 pass
-        
+
         return token
 
     def _save_token(self, token):
