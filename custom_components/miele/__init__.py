@@ -121,7 +121,7 @@ async def async_setup(hass, config):
 
     component = EntityComponent(_LOGGER, DOMAIN, hass)
 
-    client = MieleClient(hass.data[DOMAIN][DATA_OAUTH])
+    client = MieleClient(hass, hass.data[DOMAIN][DATA_OAUTH])
     hass.data[DOMAIN][DATA_CLIENT] = client
     data_get_devices = await client.get_devices(lang)
     hass.data[DOMAIN][DATA_DEVICES] = _to_dict(data_get_devices)
