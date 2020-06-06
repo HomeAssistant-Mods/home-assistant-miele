@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 
 from homeassistant.helpers.entity import Entity
-from homeassistant.components.binary_sensor import BinarySensorDevice
+from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_DEVICES
 
@@ -13,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 ALL_DEVICES = []
 
+
 def _map_key(key):
     if key == 'signalInfo':
         return 'Info'
@@ -21,9 +22,9 @@ def _map_key(key):
     elif key == 'signalDoor':
         return 'Door'
 
+
 # pylint: disable=W0612
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    
     global ALL_DEVICES
 
     devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
@@ -41,11 +42,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         add_devices(binary_devices)
         ALL_DEVICES = ALL_DEVICES + binary_devices
 
+
 def update_device_state():
     for device in ALL_DEVICES:
         device.async_schedule_update_ha_state(True)
 
-class MieleBinarySensor(BinarySensorDevice):
+
+class MieleBinarySensor(BinarySensorEntity):
 
     def __init__(self, hass, device, key):
         self._hass = hass
@@ -67,7 +70,7 @@ class MieleBinarySensor(BinarySensorDevice):
     def name(self):
         """Return the name of the sensor."""
         ident = self._device['ident']
-        
+
         result = ident['deviceName']
         if len(result) == 0:
             return ident['type']['value_localized'] + ' ' + self._ha_key
@@ -86,7 +89,7 @@ class MieleBinarySensor(BinarySensorDevice):
         else:
             return 'problem'
 
-    async def async_update(self): 
+    async def async_update(self):
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug('Miele device not found: {}'.format(self.device_id))
         else:

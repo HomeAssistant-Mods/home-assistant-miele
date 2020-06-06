@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 
 from homeassistant.helpers.entity import Entity
-from homeassistant.components.light import Light
+from homeassistant.components.light import LightEntity
 
 from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_CLIENT, DATA_DEVICES
 
@@ -13,11 +13,11 @@ _LOGGER = logging.getLogger(__name__)
 
 ALL_DEVICES = []
 
-SUPPORTED_TYPES = [ 17, 18, 32, 33, 34, 68 ]
+SUPPORTED_TYPES = [17, 18, 32, 33, 34, 68]
+
 
 # pylint: disable=W0612
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    
     global ALL_DEVICES
 
     devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
@@ -31,11 +31,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         add_devices(light_devices)
         ALL_DEVICES = ALL_DEVICES + light_devices
 
+
 def update_device_state():
     for device in ALL_DEVICES:
         device.async_schedule_update_ha_state(True)
 
-class MieleLight(Light):
+
+class MieleLight(LightEntity):
     def __init__(self, hass, device):
         self._hass = hass
         self._device = device
@@ -55,7 +57,7 @@ class MieleLight(Light):
     def name(self):
         """Return the name of the light."""
         ident = self._device['ident']
-        
+
         result = ident['deviceName']
         if len(result) == 0:
             return ident['type']['value_localized']
@@ -65,23 +67,23 @@ class MieleLight(Light):
     @property
     def is_on(self):
         """Return the state of the light."""
-        return self._device['state']['light'] == 1  
+        return self._device['state']['light'] == 1
 
     def turn_on(self, **kwargs):
         service_parameters = {
             'device_id': self.device_id,
-            'body': { 'light': 1 }
+            'body': {'light': 1}
         }
         self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
 
     def turn_off(self, **kwargs):
         service_parameters = {
             'device_id': self.device_id,
-            'body': { 'light': 2 }
+            'body': {'light': 2}
         }
         self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
 
-    async def async_update(self): 
+    async def async_update(self):
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug('Miele device not found: {}'.format(self.device_id))
         else:
