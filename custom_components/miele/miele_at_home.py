@@ -1,5 +1,6 @@
 import json
 import logging
+import functools
 
 from datetime import timedelta
 
@@ -12,13 +13,15 @@ class MieleClient(object):
     DEVICES_URL = 'https://api.mcs3.miele.com/v1/devices'
     ACTION_URL = 'https://api.mcs3.miele.com/v1/devices/{0}/actions'
 
-    def __init__(self, session):
+    def __init__(self, hass, session):
         self._session = session
+        self.hass = hass
 
     async def _get_devices_raw(self, lang):
         _LOGGER.debug('Requesting Miele device update')
         try:
-            devices = self._session._session.get(MieleClient.DEVICES_URL, params={'language':lang})
+            func = functools.partial(self._session._session.get, MieleClient.DEVICES_URL, params={'language':lang})
+            devices = await self.hass.async_add_executor_job(func)
             if devices.status_code == 401:
                 _LOGGER.info('Request unauthorized - attempting token refresh')
                 if self._session.refresh_token():
