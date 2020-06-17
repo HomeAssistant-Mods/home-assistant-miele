@@ -17,6 +17,7 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.event import async_track_time_interval
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.network import get_url
 
 from .miele_at_home import MieleClient, MieleOAuth
 
@@ -76,7 +77,7 @@ def request_configuration(hass, config, oauth):
 
     configurator = hass.components.configurator
     _CONFIGURING[DOMAIN] = configurator.async_request_config(
-        DEFAULT_NAME, 
+        DEFAULT_NAME,
         miele_configuration_callback,
         link_name=CONFIGURATOR_LINK_NAME,
         link_url=oauth.authorization_url,
@@ -104,7 +105,7 @@ async def async_setup(hass, config):
         hass.data[DOMAIN] = {}
 
     if DATA_OAUTH not in hass.data[DOMAIN]:
-        callback_url = '{}{}'.format(hass.config.api.base_url, AUTH_CALLBACK_PATH)
+        callback_url = '{}{}'.format(get_url(hass), AUTH_CALLBACK_PATH)
         cache = config[DOMAIN].get(CONF_CACHE_PATH, hass.config.path(DEFAULT_CACHE_PATH))
         hass.data[DOMAIN][DATA_OAUTH] = MieleOAuth(
             config[DOMAIN].get(CONF_CLIENT_ID), config[DOMAIN].get(CONF_CLIENT_SECRET), 
