@@ -102,8 +102,9 @@ class MieleOAuth(object):
             token=self._token,
             token_updater=self._save_token)
 
+    async def async_init(self):
         if self.authorized:
-            self.refresh_token()
+            await self.refresh_token()
 
     @property
     def authorized(self):
