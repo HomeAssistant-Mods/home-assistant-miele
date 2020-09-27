@@ -111,7 +111,6 @@ async def async_setup(hass, config):
             config[DOMAIN].get(CONF_CLIENT_ID), config[DOMAIN].get(CONF_CLIENT_SECRET), 
             redirect_uri=callback_url,
             cache_path=cache)
-        await hass.data[DOMAIN][DATA_OAUTH].async_init()
 
     if not hass.data[DOMAIN][DATA_OAUTH].authorized:
         _LOGGER.info('no token; requesting authorization')
