@@ -47,7 +47,7 @@ CONFIGURATOR_LINK_NAME = 'Link Miele account'
 CONFIGURATOR_SUBMIT_CAPTION = 'I have authorized Miele@home.'
 CONFIGURATOR_DESCRIPTION = 'To link your Miele account, ' \
 'click the link, login, and authorize:'
-CONFIGURATOR_DESCRIPTION_IMAGE='https://api.mcs3.miele.com/images/miele-logo-immer-besser.svg'
+CONFIGURATOR_DESCRIPTION_IMAGE='https://api.mcs3.miele.com/assets/images/miele_logo.svg'
 
 MIELE_COMPONENTS = ['binary_sensor', 'light', 'sensor']
 
