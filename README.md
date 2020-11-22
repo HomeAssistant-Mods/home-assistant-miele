@@ -18,7 +18,7 @@ source bin/activate
 pip3 install requests_oauthlib
 ```
 
-* Following the [instructions on the Miele developer site](https://www.miele.com/developer/getinvolved.html), you need to request your personal ```ClientID``` and ```ClientSecret```.
+* Following the [instructions on the Miele developer site](https://www.miele.com/f/com/en/register_api.aspx), you need to request your personal ```ClientID``` and ```ClientSecret```.
 
 ## Installation of the custom component
 
