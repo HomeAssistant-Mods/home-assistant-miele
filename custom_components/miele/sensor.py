@@ -150,6 +150,25 @@ class MieleStatusSensor(MieleRawSensor):
             attributes['ventilationStep'] = device_state['ventilationStep']['value_localized']
             attributes['rawVentilationStep'] = device_state['ventilationStep']['value_raw']
 
+        if 'plateStep' in device_state:
+            plate_steps = 1
+            for plateStep in device_state['plateStep']:
+                attributes['plateStep'+str(plate_steps)] = plateStep['value_localized']
+                attributes['rawPlateStep'+str(plate_steps)] = plateStep['value_raw']
+                plate_steps += 1
+
+        if 'ecoFeedback' in device_state and device_state['ecoFeedback'] is not None:
+            if 'currentWaterConsumption' in device_state['ecoFeedback']:
+                attributes['currentWaterConsumption'] = device_state['ecoFeedback']['currentWaterConsumption']['value']
+                attributes['currentWaterConsumptionUnit'] = device_state['ecoFeedback']['currentWaterConsumption']['unit']
+            if 'currentEnergyConsumption' in device_state['ecoFeedback']:
+                attributes['currentEnergyConsumption'] = device_state['ecoFeedback']['currentEnergyConsumption']['value']
+                attributes['currentEnergyConsumptionUnit'] = device_state['ecoFeedback']['currentEnergyConsumption']['unit']
+            if 'waterForecast' in device_state['ecoFeedback']:
+                attributes['waterForecast'] = device_state['ecoFeedback']['waterForecast']
+            if 'energyForecast' in device_state['ecoFeedback']:
+                attributes['energyForecast'] = device_state['ecoFeedback']['energyForecast']
+
         # Programs will only be running of both remainingTime and elapsedTime indicate 
         # a value > 0
         if 'remainingTime' in device_state and 'elapsedTime' in device_state:
@@ -161,7 +180,7 @@ class MieleStatusSensor(MieleRawSensor):
             else:
                 startTime = 0
 
-            # Calculate progress            
+            # Calculate progress
             if (elapsedTime + remainingTime) == 0:
                 attributes['progress'] = None
             else:
