@@ -124,9 +124,9 @@ class MieleOAuth(object):
 
         return token
 
-    async def refresh_token(self):
+    def refresh_token(self):
         body = 'client_id={}&client_secret={}&'.format(self._client_id, self._client_secret)
-        self._token = await self._session.refresh_token(MieleOAuth.OAUTH_TOKEN_URL,
+        self._token = self._session.refresh_token(MieleOAuth.OAUTH_TOKEN_URL,
             body=body,
             refresh_token=self._token['refresh_token'])
         self._save_token(self._token)
