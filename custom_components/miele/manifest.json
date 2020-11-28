@@ -6,7 +6,7 @@
     "requests_oauthlib"
   ],
   "dependencies": [
-    "http","component configurator"
+    "http","configurator"
   ],
   "codeowners": [
     "@kloknibor",
