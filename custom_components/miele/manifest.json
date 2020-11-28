@@ -6,7 +6,7 @@
     "requests_oauthlib"
   ],
   "dependencies": [
-    "http"
+    "http","component configurator"
   ],
   "codeowners": ["docbobo, Kloknibor"]
 }
