@@ -70,7 +70,7 @@ class MieleFan(FanEntity):
     @property
     def is_on(self):
         """Return the state of the fan."""
-        return self._device['state']['status']['value_raw'] != 1
+        return self._device['state']['ventilationStep']['value_raw'] != 0
 
     @property
     def supported_features(self):
@@ -87,27 +87,38 @@ class MieleFan(FanEntity):
         """Return the current speed"""
         return self._device['state']['ventilationStep']['value_raw']
 
-    async def turn_on(self, speed = None, **kwargs):
-        service_parameters = {
-            'device_id': self.device_id,
-            'body': {'powerOn': True,
-                     'ventilationStep': speed}
-        }
-        self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
 
-    async def turn_off(self, **kwargs):
-        service_parameters = {
-            'device_id': self.device_id,
-            'body': {'powerOff': True}
-        }
-        self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
+    def turn_on(self, speed = None, **kwargs) -> None:
+        """Turn on the fan."""
+        client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
+        client.action(device_id= self.device_id, body={'powerOn': True})
+
+    async def async_turn_on(self, speed = None, **kwargs):
+        """Turn on the fan."""
+        if speed == "0":
+            await self.async_turn_off()
+        elif speed is not None:
+            await self.async_set_speed(speed=speed)
+        else:
+            _LOGGER.debug('Turning on')
+            client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
+            await client.action(device_id=self.device_id,  body={'powerOn': True})
+
+    def turn_off(self, **kwargs):
+        _LOGGER.debug('Turning off')
+        client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
+        client.action(device_id= self.device_id, body={'powerOff': True})
+
+    async def async_turn_off(self, **kwargs):
+        client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
+        await client.action(device_id=self.device_id,  body={'powerOff': True})
+
 
     async def async_set_speed(self, speed):
-        service_parameters = {
-            'device_id': self.device_id,
-            'body': {'ventilationStep': speed}
-        }
-        self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
+        _LOGGER.debug('Setting speed to : {}'.format(speed))
+        client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
+        await client.action(device_id=self.device_id,  body={'ventilationStep': speed})
+
 
     async def async_update(self):
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
