@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 
 from homeassistant.helpers.entity import Entity
-from homeassistant.components.fan import FanEntity
+from homeassistant.components.fan import FanEntity, SUPPORT_SET_SPEED
 
 from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_CLIENT, DATA_DEVICES
 
@@ -14,6 +14,9 @@ _LOGGER = logging.getLogger(__name__)
 ALL_DEVICES = []
 
 SUPPORTED_TYPES = [18]
+
+
+OPERATION_SPEEDS = [0, 1, 2, 3, 4]
 
 
 # pylint: disable=W0612
@@ -70,14 +73,25 @@ class MieleFan(FanEntity):
         return self._device['state']['status']['value_raw'] != 1
 
     @property
+    def supported_features(self):
+        """Flag supported features."""
+        return SUPPORT_SET_SPEED
+
+    @property
+    def speed_list(self) -> list:
+        """Get the list of available speeds."""
+        return OPERATION_SPEEDS
+
+    @property
     def speed(self):
         """Return the current speed"""
         return self._device['state']['ventilationStep']['value_raw']
 
-    async def turn_on(self, **kwargs):
+    async def turn_on(self, speed = None, **kwargs):
         service_parameters = {
             'device_id': self.device_id,
-            'body': {'powerOn': True}
+            'body': {'powerOn': True,
+                     'ventilationStep': speed}
         }
         self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
 
