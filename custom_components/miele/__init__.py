@@ -49,7 +49,7 @@ CONFIGURATOR_DESCRIPTION = 'To link your Miele account, ' \
 'click the link, login, and authorize:'
 CONFIGURATOR_DESCRIPTION_IMAGE='https://api.mcs3.miele.com/assets/images/miele_logo.svg'
 
-MIELE_COMPONENTS = ['binary_sensor', 'light', 'sensor']
+MIELE_COMPONENTS = ['binary_sensor', 'light', 'sensor', 'fan']
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
