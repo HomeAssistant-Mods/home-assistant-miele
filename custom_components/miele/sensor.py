@@ -52,10 +52,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
         if 'targetTemperature' in device_state:
             for i, val in enumerate(device_state['targetTemperature']):
-                sensors.append(MieleTemperatureSensor(hass, device, 'targetTemperature', i))
+                if val['value_raw'] != -32768:
+                    sensors.append(MieleTemperatureSensor(hass, device, 'targetTemperature', i))
         if 'temperature' in device_state:
             for i, val in enumerate(device_state['temperature']):
-                sensors.append(MieleTemperatureSensor(hass, device, 'temperature', i))
+                if val['value_raw'] != -32768:
+                    sensors.append(MieleTemperatureSensor(hass, device, 'temperature', i))
+
 
         if 'remainingTime' in device_state:
             sensors.append(MieleTimeSensor(hass, device, 'remainingTime'))
