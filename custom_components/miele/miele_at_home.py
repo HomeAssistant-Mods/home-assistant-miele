@@ -59,8 +59,8 @@ class MieleClient(object):
 
         return None
 
-    def action(self, device_id, body):
-        _LOGGER.debug('Executing device action for {}'.format(device_id))
+    async def action(self, device_id, body):
+        _LOGGER.debug('Executing device action for {}{}'.format(device_id, body))
         try:
             headers = { 'Content-Type' : 'application/json' }
             result = self._session._session.put(MieleClient.ACTION_URL.format(device_id), data=json.dumps(body), headers=headers)
