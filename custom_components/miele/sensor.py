@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta, datetime
 
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_registry import async_get_registry
 
 from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_DEVICES
 
@@ -52,12 +53,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
         if 'targetTemperature' in device_state:
             for i, val in enumerate(device_state['targetTemperature']):
-                if val['value_raw'] != -32768:
-                    sensors.append(MieleTemperatureSensor(hass, device, 'targetTemperature', i))
+                sensors.append(MieleTemperatureSensor(hass, device, 'targetTemperature', i))
         if 'temperature' in device_state:
             for i, val in enumerate(device_state['temperature']):
-                if val['value_raw'] != -32768:
-                    sensors.append(MieleTemperatureSensor(hass, device, 'temperature', i))
+                sensors.append(MieleTemperatureSensor(hass, device, 'temperature', i))
 
 
         if 'remainingTime' in device_state:
@@ -75,8 +74,9 @@ def update_device_state():
         try:
             device.async_schedule_update_ha_state(True)
         except AssertionError:
-            _LOGGER.error('Miele device was not initialized but had value now, '
-                          'please report to developer : {}'.format(device))
+            _LOGGER.debug('Component most likely is disabled manually, if not please report to developer'
+                          '{}'.format(device.entity_id))
+
 
 class MieleRawSensor(Entity):
 
@@ -117,6 +117,7 @@ class MieleRawSensor(Entity):
             _LOGGER.debug('Miele device disappeared: {}'.format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
+
 
 class MieleStatusSensor(MieleRawSensor):
     def __init(self, client, device, key):
