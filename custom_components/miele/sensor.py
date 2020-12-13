@@ -17,6 +17,8 @@ ALL_DEVICES = []
 def _map_key(key):
     if key == "status":
         return "Status"
+    elif key == "ProgramID":
+        return "Program ID"
     elif key == "programType":
         return "Program Type"
     elif key == "programPhase":
@@ -53,6 +55,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         sensors = []
         if "status" in device_state:
             sensors.append(MieleStatusSensor(hass, device, "status"))
+
+        if "ProgramID" in device_state:
+            sensors.append(MieleStatusSensor(hass, device, "ProgramID"))
 
         if "targetTemperature" in device_state:
             for i, val in enumerate(device_state["targetTemperature"]):
@@ -144,6 +149,10 @@ class MieleStatusSensor(MieleRawSensor):
         device_state = self._device["state"]
 
         attributes = {}
+        if "ProgramID" in device_state:
+            attributes["ProgramID"] = device_state["ProgramID"]["value_localized"]
+            attributes["rawProgramID"] = device_state["ProgramID"]["value_raw"]
+
         if "programType" in device_state:
             attributes["programType"] = device_state["programType"]["value_localized"]
             attributes["rawProgramType"] = device_state["programType"]["value_raw"]
