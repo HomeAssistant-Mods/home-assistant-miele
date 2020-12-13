@@ -57,7 +57,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             sensors.append(MieleStatusSensor(hass, device, "status"))
 
         if "ProgramID" in device_state:
-            sensors.append(MieleStatusSensor(hass, device, "ProgramID"))
+            sensors.append(MieleTextSensor(hass, device, "ProgramID"))
 
         if "targetTemperature" in device_state:
             for i, val in enumerate(device_state["targetTemperature"]):
@@ -327,3 +327,16 @@ class MieleTemperatureSensor(Entity):
             _LOGGER.debug(" Miele device disappeared: {}".format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
+
+class MieleTextSensor(MieleRawSensor):
+    def __init(self, hass, device, key):
+        pass
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        result = self._device["state"][self._key]["value_localized"]
+        if result == "":
+            result = None
+
+        return result
