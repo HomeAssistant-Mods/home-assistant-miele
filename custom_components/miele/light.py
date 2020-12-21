@@ -1,13 +1,13 @@
 import logging
-
 from datetime import timedelta
 
-from homeassistant.helpers.entity import Entity
 from homeassistant.components.light import LightEntity
+from homeassistant.helpers.entity import Entity
 
-from custom_components.miele import DOMAIN as MIELE_DOMAIN, DATA_CLIENT, DATA_DEVICES
+from custom_components.miele import DATA_CLIENT, DATA_DEVICES
+from custom_components.miele import DOMAIN as MIELE_DOMAIN
 
-PLATFORMS = ['miele']
+PLATFORMS = ["miele"]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,10 +22,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
     for k, device in devices.items():
-        device_type = device['ident']['type']
+        device_type = device["ident"]["type"]
 
         light_devices = []
-        if device_type['value_raw'] in SUPPORTED_TYPES:
+        if device_type["value_raw"] in SUPPORTED_TYPES:
             light_devices.append(MieleLight(hass, device))
 
         add_devices(light_devices)
@@ -41,12 +41,12 @@ class MieleLight(LightEntity):
     def __init__(self, hass, device):
         self._hass = hass
         self._device = device
-        self._ha_key = 'light'
+        self._ha_key = "light"
 
     @property
     def device_id(self):
         """Return the unique ID for this light."""
-        return self._device['ident']['deviceIdentLabel']['fabNumber']
+        return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
     def unique_id(self):
@@ -56,35 +56,29 @@ class MieleLight(LightEntity):
     @property
     def name(self):
         """Return the name of the light."""
-        ident = self._device['ident']
+        ident = self._device["ident"]
 
-        result = ident['deviceName']
+        result = ident["deviceName"]
         if len(result) == 0:
-            return ident['type']['value_localized']
+            return ident["type"]["value_localized"]
         else:
             return result
 
     @property
     def is_on(self):
         """Return the state of the light."""
-        return self._device['state']['light'] == 1
+        return self._device["state"]["light"] == 1
 
     def turn_on(self, **kwargs):
-        service_parameters = {
-            'device_id': self.device_id,
-            'body': {'light': 1}
-        }
-        self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
+        service_parameters = {"device_id": self.device_id, "body": {"light": 1}}
+        self._hass.services.call(MIELE_DOMAIN, "action", service_parameters)
 
     def turn_off(self, **kwargs):
-        service_parameters = {
-            'device_id': self.device_id,
-            'body': {'light': 2}
-        }
-        self._hass.services.call(MIELE_DOMAIN, 'action', service_parameters)
+        service_parameters = {"device_id": self.device_id, "body": {"light": 2}}
+        self._hass.services.call(MIELE_DOMAIN, "action", service_parameters)
 
     async def async_update(self):
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
-            _LOGGER.debug('Miele device not found: {}'.format(self.device_id))
+            _LOGGER.debug("Miele device not found: {}".format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
