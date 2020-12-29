@@ -3,6 +3,10 @@ Support for Miele.
 """
 import asyncio
 import logging
+import time
+
+from aiohttp import web
+
 from datetime import timedelta
 from importlib import import_module
 
@@ -159,6 +163,16 @@ async def async_setup(hass, config):
     async def refresh_devices(event_time):
         _LOGGER.debug("Attempting to update Miele devices")
         device_state = await client.get_devices(lang)
+
+        # Updating expires in to keep token up to date
+        current_token = hass.data[DOMAIN][DATA_OAUTH].token
+        new_token = current_token
+        # set date 1 day to early to make sure token gets refreshed thus -86400
+        new_token['expires_in'] = current_token['expires_at'] - time.time() - 86400
+        hass.data[DOMAIN][DATA_OAUTH].token = new_token
+
+        _LOGGER.debug("Token will be refreshed in : " + new_token['expires_in'])
+
         if device_state is None:
             _LOGGER.error("Did not receive Miele devices")
         else:
@@ -172,6 +186,7 @@ async def async_setup(hass, config):
 
     register_services(hass)
 
+    # Set interval to check devices for new data, will be eventing in the future
     interval = timedelta(seconds=5)
     async_track_time_interval(hass, refresh_devices, interval)
 
