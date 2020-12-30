@@ -110,13 +110,20 @@ class MieleOAuth(object):
 
         self._token = self._get_cached_token()
 
+        self._extra = {
+            'client_id': self._client_id,
+            'client_secret': self._client_secret,
+        }
+
         self._session = OAuth2Session(
             self._client_id,
             auto_refresh_url=MieleOAuth.OAUTH_TOKEN_URL,
             redirect_uri=redirect_uri,
             token=self._token,
             token_updater=self._save_token,
+            auto_refresh_kwargs=self._extra
         )
+
 
         if self.authorized:
             self.refresh_token()
@@ -168,6 +175,7 @@ class MieleOAuth(object):
         return token
 
     def _save_token(self, token):
+        _LOGGER.debug("trying to save new token")
         if self._cache_path:
             try:
                 f = open(self._cache_path, "w")
@@ -178,3 +186,5 @@ class MieleOAuth(object):
                     "Couldn't write token cache to {0}".format(self._cache_path)
                 )
                 pass
+
+        self._token = token
