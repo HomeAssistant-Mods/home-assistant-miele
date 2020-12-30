@@ -1,12 +1,6 @@
 import functools
 import json
 import logging
-
-import functools
-import time
-
-
-
 from datetime import timedelta
 
 from requests.exceptions import ConnectionError
@@ -115,7 +109,6 @@ class MieleOAuth(object):
         self._cache_path = cache_path
 
         self._token = self._get_cached_token()
-        self._token['expires_in'] = self._token['expires_at'] - time.time() - 86400
 
         self._session = OAuth2Session(
             self._client_id,
@@ -137,15 +130,6 @@ class MieleOAuth(object):
         return self._session.authorization_url(
             MieleOAuth.OAUTH_AUTHORIZE_URL, state="login"
         )[0]
-
-    @property
-    def token(self):
-        return self._token
-
-    @token.setter
-    def token(self, token_updated):
-        self._token = token_updated
-
 
     def get_access_token(self, client_code):
         token = self._session.fetch_token(
