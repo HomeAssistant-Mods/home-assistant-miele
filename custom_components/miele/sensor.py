@@ -328,6 +328,7 @@ class MieleTemperatureSensor(Entity):
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
+
 class MieleTextSensor(MieleRawSensor):
     def __init(self, hass, device, key):
         pass
