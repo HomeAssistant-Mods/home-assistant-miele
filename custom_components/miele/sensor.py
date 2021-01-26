@@ -38,8 +38,8 @@ def _map_key(key):
 def state_capability(type, state):
     type_str = str(type)
     capabilities = {
-        "1": ["ProgramID", "status", "programType", "programPhase", "remainingTime", "startTime", "signalInfo",
-              "signalFailure", "remoteEnable", "elapsedTime", "spinningSpeed", "ecoFeedback"],
+        "1": ["ProgramID", "status", "programType", "programPhase", "remainingTime", "startTime", "targetTemperature",
+              "signalInfo", "signalFailure", "remoteEnable", "elapsedTime", "spinningSpeed", "ecoFeedback"],
         "2": ["ProgramID", "status", "programType", "programPhase", "remainingTime", "startTime", "signalInfo",
               "signalFailure", "remoteEnable", "elapsedTime", "dryingStep", "ecoFeedback"],
         "7": ["ProgramID", "status", "programType", "programPhase", "remainingTime", "startTime", "signalInfo",
