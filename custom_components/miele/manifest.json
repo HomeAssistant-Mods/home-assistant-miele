@@ -1,7 +1,8 @@
 {
   "domain": "miele",
   "name": "Miele@home",
-  "documentation": "https://github.com/docbobo/home-assistant-miele",
+  "documentation": "https://github.com/HomeAssistant-Mods/home-assistant-miele",
+  "issue_tracker": "https://github.com/HomeAssistant-Mods/home-assistant-miele/issues",
   "requirements": [
     "requests_oauthlib"
   ],
