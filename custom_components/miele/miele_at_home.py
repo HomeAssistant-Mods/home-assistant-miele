@@ -111,8 +111,8 @@ class MieleOAuth(object):
         self._token = self._get_cached_token()
 
         self._extra = {
-            'client_id': self._client_id,
-            'client_secret': self._client_secret,
+            "client_id": self._client_id,
+            "client_secret": self._client_secret,
         }
 
         self._session = OAuth2Session(
@@ -121,9 +121,8 @@ class MieleOAuth(object):
             redirect_uri=redirect_uri,
             token=self._token,
             token_updater=self._save_token,
-            auto_refresh_kwargs=self._extra
+            auto_refresh_kwargs=self._extra,
         )
-
 
         if self.authorized:
             self.refresh_token()
