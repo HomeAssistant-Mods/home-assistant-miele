@@ -325,7 +325,7 @@ class MieleDevice(Entity):
         return result
 
     async def action(self, action):
-        self._client.action(self.unique_id, action)
+        await self._client.action(self.unique_id, action)
 
     async def async_update(self):
         if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:

@@ -1,0 +1,21 @@
+# Example services.yaml entry
+
+action:
+  # Description of the service
+  description: Runs action of Miele device
+  # Different fields that your service accepts
+  fields:
+    # Key of the field
+    entity_id:
+      # Description of the field
+      description: Name(s) of the entities to set (optional, either set this or device_id)
+      # Example value that can be passed for this field
+      example: "miele.washing_machine"
+    device_id:
+      # Description of the field
+      description: fab number of device to set (optional, either set this or entity_id)
+      # Example value that can be passed for this field
+      example: "000123456789"
+    body:
+      description: The command to send
+      example: "{\"powerOff\": true}"
