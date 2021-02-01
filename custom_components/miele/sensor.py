@@ -35,6 +35,266 @@ def _map_key(key):
         return "Start Time"
 
 
+def state_capability(type, state):
+    type_str = str(type)
+    capabilities = {
+        "1": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+            "elapsedTime",
+            "spinningSpeed",
+            "ecoFeedback",
+        ],
+        "2": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+            "elapsedTime",
+            "dryingStep",
+            "ecoFeedback",
+        ],
+        "7": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+            "elapsedTime",
+            "ecoFeedback",
+        ],
+        "12": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "13": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "14": ["status", "signalFailure", "plateStep"],
+        "15": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "16": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "17": [
+            "ProgramID",
+            "status",
+            "programPhase",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+        ],
+        "18": [
+            "status",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+            "ventilationStep",
+        ],
+        "19": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+        ],
+        "20": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+        ],
+        "21": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+        ],
+        "23": [
+            "ProgramID",
+            "status",
+            "programType",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+            "batteryLevel",
+        ],
+        "24": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+            "elapsedTime",
+            "spinningSpeed",
+            "dryingStep",
+            "ecoFeedback",
+        ],
+        "25": ["status", "signalInfo", "signalFailure"],
+        "27": ["status", "signalFailure", "plateStep"],
+        "31": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "32": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+        ],
+        "33": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+        ],
+        "34": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+        ],
+        "45": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "67": [
+            "ProgramID",
+            "status",
+            "programType",
+            "programPhase",
+            "remainingTime",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "signalDoor",
+            "remoteEnable",
+            "elapsedTime",
+        ],
+        "68": [
+            "status",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "remoteEnable",
+        ],
+    }
+
+    if state in capabilities[type_str]:
+        return True
+
+
 def _to_seconds(time_array):
     if len(time_array) == 3:
         return time_array[0] * 3600 + time_array[1] * 60 + time_array[2]
@@ -51,28 +311,43 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
     for k, device in devices.items():
         device_state = device["state"]
+        device_type = device["ident"]["type"]["value_raw"]
 
         sensors = []
-        if "status" in device_state:
+        if "status" in device_state and state_capability(
+            type=device_type, state="status"
+        ):
             sensors.append(MieleStatusSensor(hass, device, "status"))
 
-        if "ProgramID" in device_state:
+        if "ProgramID" in device_state and state_capability(
+            type=device_type, state="ProgramID"
+        ):
             sensors.append(MieleTextSensor(hass, device, "ProgramID"))
 
-        if "targetTemperature" in device_state:
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature"
+        ):
             for i, val in enumerate(device_state["targetTemperature"]):
                 sensors.append(
                     MieleTemperatureSensor(hass, device, "targetTemperature", i)
                 )
-        if "temperature" in device_state:
+        if "temperature" in device_state and state_capability(
+            type=device_type, state="temperature"
+        ):
             for i, val in enumerate(device_state["temperature"]):
                 sensors.append(MieleTemperatureSensor(hass, device, "temperature", i))
 
-        if "remainingTime" in device_state:
+        if "remainingTime" in device_state and state_capability(
+            type=device_type, state="remainingTime"
+        ):
             sensors.append(MieleTimeSensor(hass, device, "remainingTime"))
-        if "startTime" in device_state:
+        if "startTime" in device_state and state_capability(
+            type=device_type, state="startTime"
+        ):
             sensors.append(MieleTimeSensor(hass, device, "startTime"))
-        if "elapsedTime" in device_state:
+        if "elapsedTime" in device_state and state_capability(
+            type=device_type, state="elapsedTime"
+        ):
             sensors.append(MieleTimeSensor(hass, device, "elapsedTime"))
 
         add_devices(sensors)
