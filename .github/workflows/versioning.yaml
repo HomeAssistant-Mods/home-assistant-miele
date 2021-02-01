@@ -1,0 +1,28 @@
+name: versioning
+on:
+  push:
+    branches:
+      - master
+      - dev
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checking out repo
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+    - name: Upgrade pip and install bumpver
+      run: |
+        python -m pip install --upgrade pip
+        pip install bumpver
+    - name: Bumping version
+      working-directory: ./.github
+      run: |
+        bumpver update
+    - name: pushing updates
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message:  Bump version
+        commit_user_name: Github Actions Bot
