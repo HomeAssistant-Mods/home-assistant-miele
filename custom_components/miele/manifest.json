@@ -3,7 +3,7 @@
   "name": "Miele@home",
   "documentation": "https://github.com/HomeAssistant-Mods/home-assistant-miele",
   "issue_tracker": "https://github.com/HomeAssistant-Mods/home-assistant-miele/issues",
-  "version": "v2021.2.1",
+  "version": "v2021.2.2",
   "requirements": [
     "requests_oauthlib"
   ],
