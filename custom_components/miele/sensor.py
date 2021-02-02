@@ -207,7 +207,15 @@ def state_capability(type, state):
             "dryingStep",
             "ecoFeedback",
         ],
-        "25": ["status", "signalInfo", "signalFailure"],
+        "25": [
+            "status",
+            "startTime",
+            "targetTemperature",
+            "temperature",
+            "signalInfo",
+            "signalFailure",
+            "elapsedTime",
+        ],
         "27": ["status", "signalFailure", "plateStep"],
         "31": [
             "ProgramID",
