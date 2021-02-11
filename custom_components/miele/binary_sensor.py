@@ -45,7 +45,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
 def update_device_state():
     for device in ALL_DEVICES:
-        device.async_schedule_update_ha_state(True)
+        try:
+            device.async_schedule_update_ha_state(True)
+        except AssertionError:
+            _LOGGER.debug(
+                "Component most likely is disabled manually, if not please report to developer"
+                "{}".format(device.entity_id)
+            )
 
 
 class MieleBinarySensor(BinarySensorEntity):
