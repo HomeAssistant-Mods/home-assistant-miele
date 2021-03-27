@@ -1,5 +1,5 @@
 [bumpver]
-current_version = "v2021.2.12"
+current_version = "v2021.3.27"
 version_pattern = "vYYYY.MM.DD"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = false
