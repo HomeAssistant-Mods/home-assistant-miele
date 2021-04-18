@@ -2,6 +2,7 @@
 Support for Miele.
 """
 import asyncio
+import functools
 import logging
 from datetime import timedelta
 from importlib import import_module
@@ -223,7 +224,7 @@ class MieleAuthCallbackView(HomeAssistantView):
         self.oauth = oauth
 
     @callback
-    def get(self, request):
+    async def get(self, request):
         """Receive authorization token."""
         hass = request.app["hass"]
 
@@ -238,7 +239,11 @@ class MieleAuthCallbackView(HomeAssistantView):
         result = None
         if request.query.get("code") is not None:
             try:
-                result = self.oauth.get_access_token(request.query["code"])
+                func = functools.partial(
+                    self.oauth.get_access_token, request.query["code"]
+                )
+
+                result = await hass.async_add_executor_job(func)
             except MissingTokenError as error:
                 _LOGGER.error("Missing token: %s", error)
                 response_message = """Something went wrong when
