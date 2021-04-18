@@ -42,6 +42,7 @@ def update_device_state():
                 "{}".format(device.entity_id)
             )
 
+
 class MieleLight(LightEntity):
     def __init__(self, hass, device):
         self._hass = hass

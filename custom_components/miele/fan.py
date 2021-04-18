@@ -45,6 +45,7 @@ def update_device_state():
                 "{}".format(device.entity_id)
             )
 
+
 class MieleFan(FanEntity):
     def __init__(self, hass, device):
         self._hass = hass
