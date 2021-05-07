@@ -68,11 +68,13 @@ class MieleClient(object):
         _LOGGER.debug("Executing device action for {}{}".format(device_id, body))
         try:
             headers = {"Content-Type": "application/json"}
-            result = await self._session._session.put(
+            func = functools.partial(
+                self._session._session.put,
                 MieleClient.ACTION_URL.format(device_id),
                 data=json.dumps(body),
                 headers=headers,
             )
+            result = await self.hass.async_add_executor_job(func)
             if result.status_code == 401:
                 _LOGGER.info("Request unauthorized - attempting token refresh")
                 if self._session.refresh_token():
