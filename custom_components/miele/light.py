@@ -36,7 +36,7 @@ def update_device_state():
     for device in ALL_DEVICES:
         try:
             device.async_schedule_update_ha_state(True)
-        except AssertionError:
+        except (AssertionError, AttributeError):
             _LOGGER.debug(
                 "Component most likely is disabled manually, if not please report to developer"
                 "{}".format(device.entity_id)
