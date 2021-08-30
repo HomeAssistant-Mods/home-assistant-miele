@@ -1,12 +1,15 @@
 import logging
+import math
 from datetime import timedelta
+from typing import Optional
 
 from homeassistant.components.fan import SUPPORT_SET_SPEED, FanEntity
 from homeassistant.helpers.entity import Entity
-from homeassistant.util.percentage import int_states_in_range, ranged_value_to_percentage, percentage_to_ranged_value
-import math
-from typing import Optional
-
+from homeassistant.util.percentage import (
+    int_states_in_range,
+    percentage_to_ranged_value,
+    ranged_value_to_percentage,
+)
 
 from custom_components.miele import DATA_CLIENT, DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
@@ -139,15 +142,19 @@ class MieleFan(FanEntity):
         self._current_speed = value_in_range
         _LOGGER.debug("Setting speed to : {}".format(value_in_range))
         client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
-        client.action(device_id=self.device_id, body={"ventilationStep": value_in_range})
+        client.action(
+            device_id=self.device_id, body={"ventilationStep": value_in_range}
+        )
 
     async def async_set_percentage(self, percentage: int) -> None:
-        """Set the speed percentage of the fan.""" #
+        """Set the speed percentage of the fan."""  #
         value_in_range = math.ceil(percentage_to_ranged_value(SPEED_RANGE, percentage))
         self._current_speed = value_in_range
         _LOGGER.debug("Setting speed to : {}".format(value_in_range))
         client = self._hass.data[MIELE_DOMAIN][DATA_CLIENT]
-        await client.action(device_id=self.device_id, body={"ventilationStep": value_in_range})
+        await client.action(
+            device_id=self.device_id, body={"ventilationStep": value_in_range}
+        )
 
     async def async_update(self):
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
