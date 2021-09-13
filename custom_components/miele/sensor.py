@@ -1,6 +1,11 @@
 import logging
 from datetime import datetime, timedelta
 
+from homeassistant.components.sensor import (
+    STATE_CLASS_TOTAL_INCREASING,
+    SensorEntity,
+)
+from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
@@ -547,9 +552,36 @@ class MieleStatusSensor(MieleRawSensor):
         return attributes
 
 
-class MieleEnergyConsumptionSensor(MieleRawSensor):
-    def __init(self, client, device, key):
-        pass
+class MieleEnergyConsumptionSensor(SensorEntity):
+    def __init__(self, hass, device, key):
+        self._hass = hass
+        self._device = device
+        self._key = key
+
+        self._attr_device_class = DEVICE_CLASS_ENERGY
+        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
+        self._attr_native_unit_of_measurement = 'kWh'
+
+    @property
+    def device_id(self):
+        """Return the unique ID for this sensor."""
+        return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
+
+    @property
+    def unique_id(self):
+        """Return the unique ID for this sensor."""
+        return self.device_id + "_" + self._key
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        ident = self._device["ident"]
+
+        result = ident["deviceName"]
+        if len(result) == 0:
+            return ident["type"]["value_localized"] + " " + _map_key(self._key)
+        else:
+            return result + " " + _map_key(self._key)
 
     @property
     def state(self):
@@ -562,20 +594,11 @@ class MieleEnergyConsumptionSensor(MieleRawSensor):
 
         return 0
 
-    @property
-    def device_class(self):
-        """Return the device class of the sensor."""
-        return "energy"
-
-    @property
-    def state_class(self):
-        """Return the device class of the sensor."""
-        return "total_increasing"
-
-    @property
-    def native_unit_of_measurement(self):
-        """Return the unit the value is expressed in."""
-        return "kWh"
+    async def async_update(self):
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
+            _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
+        else:
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
 
 class MieleTimeSensor(MieleRawSensor):
