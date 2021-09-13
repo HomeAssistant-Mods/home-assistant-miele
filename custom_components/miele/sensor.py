@@ -33,6 +33,8 @@ def _map_key(key):
         return "Elapsed Time"
     elif key == "startTime":
         return "Start Time"
+    elif key == "energyConsumption":
+        return "Energy"
 
 
 def state_capability(type, state):
@@ -358,6 +360,11 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         ):
             sensors.append(MieleTimeSensor(hass, device, "elapsedTime"))
 
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback"
+        ):
+            sensors.append(MieleEnergyConsumptionSensor(hass, device, "energyConsumption"))
+
         add_devices(sensors)
         ALL_DEVICES = ALL_DEVICES + sensors
 
@@ -538,6 +545,37 @@ class MieleStatusSensor(MieleRawSensor):
                 ).strftime("%H:%M")
 
         return attributes
+
+
+class MieleEnergyConsumptionSensor(MieleRawSensor):
+    def __init(self, client, device, key):
+        pass
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        device_state = self._device["state"]
+
+        if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
+            if "currentEnergyConsumption" in device_state["ecoFeedback"]:
+                return device_state["ecoFeedback"]["currentEnergyConsumption"]
+
+        return 0
+
+    @property
+    def device_class(self):
+        """Return the device class of the sensor."""
+        return "energy"
+
+    @property
+    def state_class(self):
+        """Return the device class of the sensor."""
+        return "total_increasing"
+
+    @property
+    def native_unit_of_measurement(self):
+        """Return the unit the value is expressed in."""
+        return "kWh"
 
 
 class MieleTimeSensor(MieleRawSensor):
