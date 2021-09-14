@@ -590,7 +590,12 @@ class MieleEnergyConsumptionSensor(SensorEntity):
 
         if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
             if "currentEnergyConsumption" in device_state["ecoFeedback"]:
-                return device_state["ecoFeedback"]["currentEnergyConsumption"]["value"]
+                consumption = device_state["ecoFeedback"]["currentEnergyConsumption"]
+
+                if consumption["unit"] == 'kWh':
+                    return consumption["value"]
+                elif consumption["unit"] == 'Wh':
+                    return consumption["value"] / 1000.0
 
         return 0
 
