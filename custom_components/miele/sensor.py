@@ -425,9 +425,6 @@ class MieleRawSensor(Entity):
 
 
 class MieleStatusSensor(MieleRawSensor):
-    def __init(self, client, device, key):
-        pass
-
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -606,9 +603,6 @@ class MieleEnergyConsumptionSensor(SensorEntity):
 
 
 class MieleTimeSensor(MieleRawSensor):
-    def __init(self, hass, device, key):
-        pass
-
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -678,9 +672,6 @@ class MieleTemperatureSensor(Entity):
 
 
 class MieleTextSensor(MieleRawSensor):
-    def __init(self, hass, device, key):
-        pass
-
     @property
     def state(self):
         """Return the state of the sensor."""
