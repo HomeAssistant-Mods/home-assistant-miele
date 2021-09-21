@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
+from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
@@ -33,6 +35,10 @@ def _map_key(key):
         return "Elapsed Time"
     elif key == "startTime":
         return "Start Time"
+    elif key == "energyConsumption":
+        return "Energy"
+    elif key == "waterConsumption":
+        return "Water Consumption"
 
 
 def state_capability(type, state):
@@ -358,6 +364,17 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         ):
             sensors.append(MieleTimeSensor(hass, device, "elapsedTime"))
 
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback"
+        ):
+            sensors.append(
+                MieleEnergyConsumptionSensor(hass, device, "energyConsumption")
+            )
+
+            sensors.append(
+                MieleWaterConsumptionSensor(hass, device, "waterConsumption")
+            )
+
         add_devices(sensors)
         ALL_DEVICES = ALL_DEVICES + sensors
 
@@ -411,6 +428,34 @@ class MieleRawSensor(Entity):
             _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
         else:
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
+
+
+class MieleSensorEntity(SensorEntity):
+    def __init__(self, hass, device, key):
+        self._hass = hass
+        self._device = device
+        self._key = key
+
+    @property
+    def device_id(self):
+        """Return the unique ID for this sensor."""
+        return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
+
+    @property
+    def unique_id(self):
+        """Return the unique ID for this sensor."""
+        return self.device_id + "_" + self._key
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        ident = self._device["ident"]
+
+        result = ident["deviceName"]
+        if len(result) == 0:
+            return ident["type"]["value_localized"] + " " + _map_key(self._key)
+        else:
+            return result + " " + _map_key(self._key)
 
 
 class MieleStatusSensor(MieleRawSensor):
@@ -538,6 +583,50 @@ class MieleStatusSensor(MieleRawSensor):
                 ).strftime("%H:%M")
 
         return attributes
+
+
+class MieleEnergyConsumptionSensor(MieleSensorEntity):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+
+        self._attr_device_class = DEVICE_CLASS_ENERGY
+        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
+        self._attr_native_unit_of_measurement = "kWh"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        device_state = self._device["state"]
+
+        if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
+            if "currentEnergyConsumption" in device_state["ecoFeedback"]:
+                consumption = device_state["ecoFeedback"]["currentEnergyConsumption"]
+
+                if consumption["unit"] == "kWh":
+                    return consumption["value"]
+                elif consumption["unit"] == "Wh":
+                    return consumption["value"] / 1000.0
+
+        return 0
+
+
+class MieleWaterConsumptionSensor(MieleSensorEntity):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+
+        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
+        self._attr_native_unit_of_measurement = "l"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        device_state = self._device["state"]
+
+        if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
+            if "currentWaterConsumption" in device_state["ecoFeedback"]:
+                return device_state["ecoFeedback"]["currentWaterConsumption"]["value"]
+
+        return 0
 
 
 class MieleTimeSensor(MieleRawSensor):
