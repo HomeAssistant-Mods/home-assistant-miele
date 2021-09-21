@@ -457,6 +457,12 @@ class MieleSensorEntity(SensorEntity):
         else:
             return result + " " + _map_key(self._key)
 
+    async def async_update(self):
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
+            _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
+        else:
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
+
 
 class MieleStatusSensor(MieleRawSensor):
     def __init(self, client, device, key):
