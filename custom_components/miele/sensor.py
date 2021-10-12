@@ -631,10 +631,13 @@ class MieleEnergyConsumptionSensor(MieleSensorEntity):
         device_status_value = self._device["state"]["status"]["value_raw"]
 
         if self._cached_consumption >= 0:
-            if ("ecoFeedback" not in device_state or
-                device_state["ecoFeedback"] is None or
-                "currentEnergyConsumption" not in device_state["ecoFeedback"] or
-                device_status_value == STATUS_NOT_CONNECTED):
+            if (
+                "ecoFeedback" not in device_state
+                or device_state["ecoFeedback"] is None
+                or "currentEnergyConsumption" not in device_state["ecoFeedback"]
+                or device_status_value == STATUS_NOT_CONNECTED
+            ):
+
                 # Sometimes the Miele API seems to return a null ecoFeedback
                 # object even though the Miele device is running. Or if the the
                 # Miele device has lost the connection to the Miele cloud, the
@@ -651,7 +654,9 @@ class MieleEnergyConsumptionSensor(MieleSensorEntity):
         consumption = 0
         if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
             if "currentEnergyConsumption" in device_state["ecoFeedback"]:
-                consumption_container = device_state["ecoFeedback"]["currentEnergyConsumption"]
+                consumption_container = device_state["ecoFeedback"][
+                    "currentEnergyConsumption"
+                ]
 
                 if consumption_container["unit"] == "kWh":
                     consumption = consumption_container["value"]
@@ -679,10 +684,13 @@ class MieleWaterConsumptionSensor(MieleSensorEntity):
         device_status_value = self._device["state"]["status"]["value_raw"]
 
         if self._cached_consumption >= 0:
-            if ("ecoFeedback" not in device_state or
-                device_state["ecoFeedback"] is None or
-                "currentWaterConsumption" not in device_state["ecoFeedback"] or
-                device_status_value == STATUS_NOT_CONNECTED):
+            if (
+                "ecoFeedback" not in device_state
+                or device_state["ecoFeedback"] is None
+                or "currentWaterConsumption" not in device_state["ecoFeedback"]
+                or device_status_value == STATUS_NOT_CONNECTED
+            ):
+
                 # Sometimes the Miele API seems to return a null ecoFeedback
                 # object even though the Miele device is running. Or if the the
                 # Miele device has lost the connection to the Miele cloud, the
@@ -699,7 +707,9 @@ class MieleWaterConsumptionSensor(MieleSensorEntity):
         consumption = 0
         if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
             if "currentWaterConsumption" in device_state["ecoFeedback"]:
-                consumption = device_state["ecoFeedback"]["currentWaterConsumption"]["value"]
+                consumption = device_state["ecoFeedback"]["currentWaterConsumption"][
+                    "value"
+                ]
 
             self._cached_consumption = consumption
 
