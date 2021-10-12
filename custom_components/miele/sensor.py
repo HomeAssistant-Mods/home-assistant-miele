@@ -390,13 +390,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         if "ecoFeedback" in device_state and state_capability(
             type=device_type, state="ecoFeedback"
         ):
-            sensors.append(
-                MieleEnergyConsumptionSensor(hass, device, "energyConsumption")
-            )
-
-            sensors.append(
-                MieleWaterConsumptionSensor(hass, device, "waterConsumption")
-            )
+            sensors.append(MieleConsumptionSensor(hass, device, "energyConsumption", "kWh"))
+            sensors.append(MieleConsumptionSensor(hass, device, "waterConsumption", "L"))
 
         add_devices(sensors)
         ALL_DEVICES = ALL_DEVICES + sensors
@@ -488,9 +483,6 @@ class MieleSensorEntity(SensorEntity):
 
 
 class MieleStatusSensor(MieleRawSensor):
-    def __init(self, client, device, key):
-        pass
-
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -614,14 +606,16 @@ class MieleStatusSensor(MieleRawSensor):
         return attributes
 
 
-class MieleEnergyConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, key):
+class MieleConsumptionSensor(MieleSensorEntity):
+    def __init__(self, hass, device, key, measurement):
         super().__init__(hass, device, key)
 
-        self._attr_device_class = DEVICE_CLASS_ENERGY
-        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
-        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
+
+        if key == "energyConsumption":
+            self._attr_device_class = DEVICE_CLASS_ENERGY
+
 
     @property
     def state(self):
@@ -630,92 +624,41 @@ class MieleEnergyConsumptionSensor(MieleSensorEntity):
 
         device_status_value = self._device["state"]["status"]["value_raw"]
 
-        if self._cached_consumption >= 0:
-            if (
-                "ecoFeedback" not in device_state
-                or device_state["ecoFeedback"] is None
-                or "currentEnergyConsumption" not in device_state["ecoFeedback"]
-                or device_status_value == STATUS_NOT_CONNECTED
-            ):
-
-                # Sometimes the Miele API seems to return a null ecoFeedback
-                # object even though the Miele device is running. Or if the the
-                # Miele device has lost the connection to the Miele cloud, the
-                # status is "not connected". Either way, we need to return the
-                # last known value until the API starts returning something
-                # sane again, otherwise the statistics generated from this
-                # sensor would be messed up.
-                return self._cached_consumption
-
         if not _is_running(device_status_value):
             self._cached_consumption = -1
             return 0
 
-        consumption = 0
-        if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
-            if "currentEnergyConsumption" in device_state["ecoFeedback"]:
-                consumption_container = device_state["ecoFeedback"]["currentEnergyConsumption"]
-
-                if consumption_container["unit"] == "kWh":
-                    consumption = consumption_container["value"]
-                elif consumption_container["unit"] == "Wh":
-                    consumption = consumption_container["value"] / 1000.0
-
-            self._cached_consumption = consumption
-
-        return consumption
-
-
-class MieleWaterConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, key):
-        super().__init__(hass, device, key)
-
-        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
-        self._attr_native_unit_of_measurement = "l"
-        self._cached_consumption = -1
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        device_state = self._device["state"]
-
-        device_status_value = self._device["state"]["status"]["value_raw"]
-
         if self._cached_consumption >= 0:
             if (
-                "ecoFeedback" not in device_state
-                or device_state["ecoFeedback"] is None
-                or "currentWaterConsumption" not in device_state["ecoFeedback"]
-                or device_status_value == STATUS_NOT_CONNECTED
+                    "ecoFeedback" not in device_state
+                    or device_state["ecoFeedback"] is None
+                    or device_status_value == STATUS_NOT_CONNECTED
             ):
-
-                # Sometimes the Miele API seems to return a null ecoFeedback
-                # object even though the Miele device is running. Or if the the
-                # Miele device has lost the connection to the Miele cloud, the
-                # status is "not connected". Either way, we need to return the
-                # last known value until the API starts returning something
-                # sane again, otherwise the statistics generated from this
-                # sensor would be messed up.
                 return self._cached_consumption
 
-        if not _is_running(device_status_value):
-            self._cached_consumption = -1
-            return 0
+            consumption = 0
+            if self.key == "energyConsumption":
+                if "currentEnergyConsumption" in device_state["ecoFeedback"]:
+                    consumption_container = device_state["ecoFeedback"]["currentEnergyConsumption"]
 
-        consumption = 0
-        if "ecoFeedback" in device_state and device_state["ecoFeedback"] is not None:
-            if "currentWaterConsumption" in device_state["ecoFeedback"]:
-                consumption = device_state["ecoFeedback"]["currentWaterConsumption"]["value"]
+                    if consumption_container["unit"] == "kWh":
+                        consumption = consumption_container["value"]
+                    elif consumption_container["unit"] == "Wh":
+                        consumption = consumption_container["value"] / 1000.0
+                else:
+                    return self._cached_consumption
+
+            elif self.key == "waterConsumption":
+                if "currentWaterConsumption" in device_state["ecoFeedback"]:
+                    consumption = device_state["ecoFeedback"]["currentWaterConsumption"]["value"]
+                else:
+                    return self._cached_consumption
 
             self._cached_consumption = consumption
 
         return consumption
-
 
 class MieleTimeSensor(MieleRawSensor):
-    def __init(self, hass, device, key):
-        pass
-
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -785,8 +728,6 @@ class MieleTemperatureSensor(Entity):
 
 
 class MieleTextSensor(MieleRawSensor):
-    def __init(self, hass, device, key):
-        pass
 
     @property
     def state(self):
