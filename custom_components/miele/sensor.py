@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
+from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
@@ -12,6 +14,25 @@ PLATFORMS = ["miele"]
 _LOGGER = logging.getLogger(__name__)
 
 ALL_DEVICES = []
+
+# https://www.miele.com/developer/swagger-ui/swagger.html#/
+STATUS_OFF = 1
+STATUS_ON = 2
+STATUS_PROGRAMMED = 3
+STATUS_PROGRAMMED_WAITING_TO_START = 4
+STATUS_RUNNING = 5
+STATUS_PAUSE = 6
+STATUS_END_PROGRAMMED = 7
+STATUS_FAILURE = 8
+STATUS_PROGRAMME_INTERRUPTED = 9
+STATUS_IDLE = 10
+STATUS_RINSE_HOLD = 11
+STATUS_SERVICE = 12
+STATUS_SUPERFREEZING = 13
+STATUS_SUPERCOOLING = 14
+STATUS_SUPERHEATING = 15
+STATUS_SUPERCOOLING_SUPERFREEZING = 146
+STATUS_NOT_CONNECTED = 255
 
 
 def _map_key(key):
@@ -33,6 +54,10 @@ def _map_key(key):
         return "Elapsed Time"
     elif key == "startTime":
         return "Start Time"
+    elif key == "energyConsumption":
+        return "Energy"
+    elif key == "waterConsumption":
+        return "Water Consumption"
 
 
 def state_capability(type, state):
@@ -303,6 +328,10 @@ def state_capability(type, state):
         return True
 
 
+def _is_running(device_status):
+    return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED]
+
+
 def _to_seconds(time_array):
     if len(time_array) == 3:
         return time_array[0] * 3600 + time_array[1] * 60 + time_array[2]
@@ -357,6 +386,16 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             type=device_type, state="elapsedTime"
         ):
             sensors.append(MieleTimeSensor(hass, device, "elapsedTime"))
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback"
+        ):
+            sensors.append(
+                MieleConsumptionSensor(hass, device, "energyConsumption", "kWh")
+            )
+            sensors.append(
+                MieleConsumptionSensor(hass, device, "waterConsumption", "L")
+            )
 
         add_devices(sensors)
         ALL_DEVICES = ALL_DEVICES + sensors
@@ -413,10 +452,41 @@ class MieleRawSensor(Entity):
             self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
 
-class MieleStatusSensor(MieleRawSensor):
-    def __init(self, client, device, key):
-        pass
+class MieleSensorEntity(SensorEntity):
+    def __init__(self, hass, device, key):
+        self._hass = hass
+        self._device = device
+        self._key = key
 
+    @property
+    def device_id(self):
+        """Return the unique ID for this sensor."""
+        return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
+
+    @property
+    def unique_id(self):
+        """Return the unique ID for this sensor."""
+        return self.device_id + "_" + self._key
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        ident = self._device["ident"]
+
+        result = ident["deviceName"]
+        if len(result) == 0:
+            return ident["type"]["value_localized"] + " " + _map_key(self._key)
+        else:
+            return result + " " + _map_key(self._key)
+
+    async def async_update(self):
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
+            _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
+        else:
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
+
+
+class MieleStatusSensor(MieleRawSensor):
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -540,10 +610,62 @@ class MieleStatusSensor(MieleRawSensor):
         return attributes
 
 
-class MieleTimeSensor(MieleRawSensor):
-    def __init(self, hass, device, key):
-        pass
+class MieleConsumptionSensor(MieleSensorEntity):
+    def __init__(self, hass, device, key, measurement):
+        super().__init__(hass, device, key)
 
+        self._attr_native_unit_of_measurement = measurement
+        self._cached_consumption = -1
+        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
+
+        if key == "energyConsumption":
+            self._attr_device_class = DEVICE_CLASS_ENERGY
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        device_state = self._device["state"]
+        device_status_value = self._device["state"]["status"]["value_raw"]
+
+        if not _is_running(device_status_value):
+            self._cached_consumption = -1
+            return 0
+
+        if self._cached_consumption >= 0:
+            if (
+                "ecoFeedback" not in device_state
+                or device_state["ecoFeedback"] is None
+                or device_status_value == STATUS_NOT_CONNECTED
+            ):
+                return self._cached_consumption
+
+        consumption = 0
+        if self._key == "energyConsumption":
+            if "currentEnergyConsumption" in device_state["ecoFeedback"]:
+                consumption_container = device_state["ecoFeedback"][
+                    "currentEnergyConsumption"
+                ]
+
+                if consumption_container["unit"] == "kWh":
+                    consumption = consumption_container["value"]
+                elif consumption_container["unit"] == "Wh":
+                    consumption = consumption_container["value"] / 1000.0
+            else:
+                return self._cached_consumption
+
+        elif self._key == "waterConsumption":
+            if "currentWaterConsumption" in device_state["ecoFeedback"]:
+                consumption = device_state["ecoFeedback"]["currentWaterConsumption"][
+                    "value"
+                ]
+            else:
+                return self._cached_consumption
+
+        self._cached_consumption = consumption
+        return consumption
+
+
+class MieleTimeSensor(MieleRawSensor):
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -613,9 +735,6 @@ class MieleTemperatureSensor(Entity):
 
 
 class MieleTextSensor(MieleRawSensor):
-    def __init(self, hass, device, key):
-        pass
-
     @property
     def state(self):
         """Return the state of the sensor."""

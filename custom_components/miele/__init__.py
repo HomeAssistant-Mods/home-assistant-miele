@@ -12,6 +12,7 @@ import voluptuous as vol
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import callback
+from homeassistant.helpers import network
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_component import EntityComponent
@@ -118,7 +119,10 @@ async def async_setup(hass, config):
         hass.data[DOMAIN] = {}
 
     if DATA_OAUTH not in hass.data[DOMAIN]:
-        callback_url = "{}{}".format(get_url(hass), AUTH_CALLBACK_PATH)
+        callback_url = "{}{}".format(
+            network.get_url(hass, allow_external=True, prefer_external=True),
+            AUTH_CALLBACK_PATH,
+        )
         cache = config[DOMAIN].get(
             CONF_CACHE_PATH, hass.config.path(STORAGE_DIR, f".miele-token-cache")
         )
