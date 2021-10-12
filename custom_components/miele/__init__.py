@@ -16,7 +16,7 @@ from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.network import get_url
+from homeassistant.helpers import network
 from homeassistant.helpers.storage import STORAGE_DIR
 
 from .miele_at_home import MieleClient, MieleOAuth
@@ -118,7 +118,12 @@ async def async_setup(hass, config):
         hass.data[DOMAIN] = {}
 
     if DATA_OAUTH not in hass.data[DOMAIN]:
-        callback_url = "{}{}".format(get_url(hass), AUTH_CALLBACK_PATH)
+        callback_url = "{}{}".format(
+            network.get_url(
+                hass,
+                allow_external=True,
+                prefer_external=True),
+            AUTH_CALLBACK_PATH)
         cache = config[DOMAIN].get(
             CONF_CACHE_PATH, hass.config.path(STORAGE_DIR, f".miele-token-cache")
         )
