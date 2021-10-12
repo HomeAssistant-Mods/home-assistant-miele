@@ -616,6 +616,7 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
+        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
 
         if key == "energyConsumption":
             self._attr_device_class = DEVICE_CLASS_ENERGY
