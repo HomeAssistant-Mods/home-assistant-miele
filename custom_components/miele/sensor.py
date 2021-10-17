@@ -654,12 +654,13 @@ class MieleConsumptionSensor(MieleSensorEntity):
                 return self._cached_consumption
 
         elif self._key == "waterConsumption":
-            if "currentWaterConsumption" in device_state["ecoFeedback"]:
-                consumption = device_state["ecoFeedback"]["currentWaterConsumption"][
-                    "value"
-                ]
-            else:
-                return self._cached_consumption
+            if device_state["ecoFeedback"] is not None: 
+                if "currentWaterConsumption" in device_state["ecoFeedback"]:
+                    consumption = device_state["ecoFeedback"]["currentWaterConsumption"][
+                        "value"
+                    ]
+                else:
+                    return self._cached_consumption
 
         self._cached_consumption = consumption
         return consumption
