@@ -497,7 +497,7 @@ class MieleStatusSensor(MieleRawSensor):
         return result
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Attributes."""
         device_state = self._device["state"]
 
