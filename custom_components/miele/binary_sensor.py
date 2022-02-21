@@ -6,12 +6,19 @@ from homeassistant.helpers.entity import Entity
 
 from custom_components.miele import DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
+from custom_components.miele import CAPABILITIES
 
 PLATFORMS = ["miele"]
 
 _LOGGER = logging.getLogger(__name__)
 
 ALL_DEVICES = []
+
+
+def state_capability(type, state):
+    type_str = str(type)
+    if state in CAPABILITIES[type_str]:
+        return True
 
 
 def _map_key(key):
@@ -30,13 +37,14 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
     for k, device in devices.items():
         device_state = device["state"]
+        device_type = device["ident"]["type"]["value_raw"]
 
         binary_devices = []
-        if "signalInfo" in device_state:
+        if "signalInfo" in device_state and state_capability(type=device_type, state="signalInfo"):
             binary_devices.append(MieleBinarySensor(hass, device, "signalInfo"))
-        if "signalFailure" in device_state:
+        if "signalFailure" in device_state and state_capability(type=device_type, state="signalFailure"):
             binary_devices.append(MieleBinarySensor(hass, device, "signalFailure"))
-        if "signalDoor" in device_state:
+        if "signalDoor" in device_state and state_capability(type=device_type, state="signalDoor"):
             binary_devices.append(MieleBinarySensor(hass, device, "signalDoor"))
 
         add_devices(binary_devices)
