@@ -78,11 +78,14 @@ class MieleClient(object):
             result = await self.hass.async_add_executor_job(func)
             if result.status_code == 401:
                 _LOGGER.info("Request unauthorized - attempting token refresh")
-                self._session._delete_token()
-                self._session.new_session()
 
                 if await self._session.refresh_token(self.hass):
-                    return self.action(device_id, body)
+                    if self._session.authorized:
+                        return self.action(device_id, body)
+                    else:
+                        self._session._delete_token()
+                        self._session.new_session()
+                        return self.action(device_id, body)
 
             if result.status_code == 200:
                 return result.json()
@@ -192,7 +195,7 @@ class MieleOAuth(object):
                 os.remove(self._cache_path)
 
             except IOError:
-                pass
+                _LOGGER. warn("Unable to delete cached token")
 
         self._token = None
 
