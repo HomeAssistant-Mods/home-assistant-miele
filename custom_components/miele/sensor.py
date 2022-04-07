@@ -631,13 +631,26 @@ class MieleConsumptionSensor(MieleSensorEntity):
             self._cached_consumption = -1
             return 0
 
-        if self._cached_consumption >= 0:
-            if (
-                "ecoFeedback" not in device_state
-                or device_state["ecoFeedback"] is None
-                or device_status_value == STATUS_NOT_CONNECTED
-            ):
+        # Sometimes the Miele API seems to return a null ecoFeedback
+        # object even though the Miele device is running. Or if the the
+        # Miele device has lost the connection to the Miele cloud, the
+        # status is "not connected". Either way, we need to return the
+        # last known value until the API starts returning something
+        # sane again, otherwise the statistics generated from this
+        # sensor would be messed up.
+        if (
+            "ecoFeedback" not in device_state
+            or device_state["ecoFeedback"] is None
+            or device_status_value == STATUS_NOT_CONNECTED
+        ):
+            if self._cached_consumption > 0:
                 return self._cached_consumption
+            else:
+                return 0
+
+        if not _is_running(device_status_value):
+            self._cached_consumption = -1
+            return 0
 
         consumption = 0
         if self._key == "energyConsumption":

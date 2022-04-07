@@ -1,6 +1,7 @@
 import functools
 import json
 import logging
+import os
 from datetime import timedelta
 
 from requests.exceptions import ConnectionError
@@ -28,8 +29,8 @@ class MieleClient(object):
             devices = await self.hass.async_add_executor_job(func)
             if devices.status_code == 401:
                 _LOGGER.info("Request unauthorized - attempting token refresh")
-                if self._session.refresh_token():
-                    return self._get_devices_raw(lang)
+                if await self._session.refresh_token(self.hass):
+                    return await self._get_devices_raw(lang)
 
             if devices.status_code != 200:
                 _LOGGER.debug(
@@ -77,8 +78,14 @@ class MieleClient(object):
             result = await self.hass.async_add_executor_job(func)
             if result.status_code == 401:
                 _LOGGER.info("Request unauthorized - attempting token refresh")
-                if self._session.refresh_token():
-                    return self.action(device_id, body)
+
+                if await self._session.refresh_token(self.hass):
+                    if self._session.authorized:
+                        return self.action(device_id, body)
+                    else:
+                        self._session._delete_token()
+                        self._session.new_session()
+                        return self.action(device_id, body)
 
             if result.status_code == 200:
                 return result.json()
@@ -105,10 +112,11 @@ class MieleOAuth(object):
     OAUTH_AUTHORIZE_URL = "https://api.mcs3.miele.com/thirdparty/login"
     OAUTH_TOKEN_URL = "https://api.mcs3.miele.com/thirdparty/token"
 
-    def __init__(self, client_id, client_secret, redirect_uri, cache_path=None):
+    def __init__(self, hass, client_id, client_secret, redirect_uri, cache_path=None):
         self._client_id = client_id
         self._client_secret = client_secret
         self._cache_path = cache_path
+        self._redirect_uri = redirect_uri
 
         self._token = self._get_cached_token()
 
@@ -127,7 +135,7 @@ class MieleOAuth(object):
         )
 
         if self.authorized:
-            self.refresh_token()
+            self.refresh_token(hass)
 
     @property
     def authorized(self):
@@ -150,16 +158,22 @@ class MieleOAuth(object):
 
         return token
 
-    async def refresh_token(self):
+    async def refresh_token(self, hass):
         body = "client_id={}&client_secret={}&".format(
             self._client_id, self._client_secret
         )
-        self._token = await self._session.refresh_token(
+        self._token = await hass.async_add_executor_job(
+            self.sync_refresh_token,
             MieleOAuth.OAUTH_TOKEN_URL,
-            body=body,
-            refresh_token=self._token["refresh_token"],
+            body,
+            self._token["refresh_token"],
         )
         self._save_token(self._token)
+
+    def sync_refresh_token(self, token_url, body, refresh_token):
+        return self._session.refresh_token(
+            token_url, body=body, refresh_token=refresh_token
+        )
 
     def _get_cached_token(self):
         token = None
@@ -174,6 +188,29 @@ class MieleOAuth(object):
                 pass
 
         return token
+
+    def _delete_token(self):
+        if self._cache_path:
+            try:
+                os.remove(self._cache_path)
+
+            except IOError:
+                _LOGGER.warn("Unable to delete cached token")
+
+        self._token = None
+
+    def _new_session(self, redirect_uri):
+        self._session = OAuth2Session(
+            self._client_id,
+            auto_refresh_url=MieleOAuth.OAUTH_TOKEN_URL,
+            redirect_uri=self._redirect_uri,
+            token=self._token,
+            token_updater=self._save_token,
+            auto_refresh_kwargs=self._extra,
+        )
+
+        if self.authorized:
+            self.refresh_token()
 
     def _save_token(self, token):
         _LOGGER.debug("trying to save new token")
