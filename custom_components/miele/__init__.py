@@ -37,12 +37,14 @@ DATA_CLIENT = "client"
 SERVICE_ACTION = "action"
 SCOPE = "code"
 DEFAULT_LANG = "en"
+DEFAULT_INTERVAL = 5
 AUTH_CALLBACK_PATH = "/api/miele/callback"
 AUTH_CALLBACK_NAME = "api:miele:callback"
 CONF_CLIENT_ID = "client_id"
 CONF_CLIENT_SECRET = "client_secret"
 CONF_LANG = "lang"
 CONF_CACHE_PATH = "cache_path"
+CONF_INTERVAL = "interval"
 CONFIGURATOR_LINK_NAME = "Link Miele account"
 CONFIGURATOR_SUBMIT_CAPTION = "I have authorized Miele@home."
 CONFIGURATOR_DESCRIPTION = (
@@ -62,6 +64,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_CLIENT_SECRET): cv.string,
                 vol.Optional(CONF_LANG): cv.string,
                 vol.Optional(CONF_CACHE_PATH): cv.string,
+                vol.Optional(CONF_INTERVAL): cv.positive_int,
             }
         ),
     },
@@ -333,7 +336,6 @@ CAPABILITIES = {
     ],
 }
 
-
 def request_configuration(hass, config, oauth):
     """Request Miele authorization."""
 
@@ -446,8 +448,9 @@ async def async_setup(hass, config):
                 platform.update_device_state()
 
     register_services(hass)
+    interval = timedelta(seconds=config[DOMAIN].get(CONF_INTERVAL, DEFAULT_INTERVAL))
 
-    interval = timedelta(seconds=5)
+    
     async_track_time_interval(hass, refresh_devices, interval)
 
     return True
