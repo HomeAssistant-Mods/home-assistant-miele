@@ -1,24 +1,30 @@
+from __future__ import annotations
 import functools
 import json
 import logging
 import os
-from datetime import timedelta
 
+from datetime import timedelta
+from typing_extensions import TypedDict
+from typing import Coroutine
+from requests import Response
 from requests.exceptions import ConnectionError
 from requests_oauthlib import OAuth2Session
 
 _LOGGER = logging.getLogger(__name__)
+from custom_components.miele.device_template import Device
+from homeassistant.helpers.typing import HomeAssistantType
 
 
 class MieleClient(object):
     DEVICES_URL = "https://api.mcs3.miele.com/v1/devices"
     ACTION_URL = "https://api.mcs3.miele.com/v1/devices/{0}/actions"
 
-    def __init__(self, hass, session):
+    def __init__(self, hass: HomeAssistantType, session: MieleOAuth) -> None:
         self._session = session
         self.hass = hass
 
-    async def _get_devices_raw(self, lang):
+    async def _get_devices_raw(self, lang: str) -> None | dict[str, Device]:
         _LOGGER.debug("Requesting Miele device update")
         try:
             func = functools.partial(
@@ -44,7 +50,7 @@ class MieleClient(object):
             _LOGGER.error("Failed to retrieve Miele devices: {0}".format(err))
             return None
 
-    async def get_devices(self, lang="en"):
+    async def get_devices(self, lang: str = "en") -> None | list[Device]:
         home_devices = await self._get_devices_raw(lang)
         if home_devices is None:
             return None
@@ -55,17 +61,16 @@ class MieleClient(object):
 
         return result
 
-    def get_device(self, device_id, lang="en"):
+    def get_device(self, device_id: str, lang: str = "en") -> None | Device:
         devices = self._get_devices_raw(lang)
         if devices is None:
             return None
 
         if devices is not None:
             return devices[device_id]
-
         return None
 
-    async def action(self, device_id, body):
+    async def action(self, device_id: str, body: str) -> dict | None | Coroutine:
         _LOGGER.debug("Executing device action for {}{}".format(device_id, body))
         try:
             headers = {"Content-Type": "application/json"}
@@ -112,7 +117,8 @@ class MieleOAuth(object):
     OAUTH_AUTHORIZE_URL = "https://api.mcs3.miele.com/thirdparty/login"
     OAUTH_TOKEN_URL = "https://api.mcs3.miele.com/thirdparty/token"
 
-    def __init__(self, hass, client_id, client_secret, redirect_uri, cache_path=None):
+    def __init__(self, hass: HomeAssistantType, client_id: str, client_secret: str, redirect_uri: str,
+                 cache_path: str = None) -> None:
         self._client_id = client_id
         self._client_secret = client_secret
         self._cache_path = cache_path
@@ -138,16 +144,16 @@ class MieleOAuth(object):
             self.refresh_token(hass)
 
     @property
-    def authorized(self):
+    def authorized(self) -> bool:
         return self._session.authorized
 
     @property
-    def authorization_url(self):
+    def authorization_url(self) -> str:
         return self._session.authorization_url(
             MieleOAuth.OAUTH_AUTHORIZE_URL, state="login"
         )[0]
 
-    def get_access_token(self, client_code):
+    def get_access_token(self, client_code: str):
         token = self._session.fetch_token(
             MieleOAuth.OAUTH_TOKEN_URL,
             code=client_code,
@@ -158,7 +164,7 @@ class MieleOAuth(object):
 
         return token
 
-    async def refresh_token(self, hass):
+    async def refresh_token(self, hass: HomeAssistantType) -> None:
         body = "client_id={}&client_secret={}&".format(
             self._client_id, self._client_secret
         )
@@ -170,7 +176,7 @@ class MieleOAuth(object):
         )
         self._save_token(self._token)
 
-    def sync_refresh_token(self, token_url, body, refresh_token):
+    def sync_refresh_token(self, token_url: str, body: str, refresh_token: str) -> str:
         return self._session.refresh_token(
             token_url, body=body, refresh_token=refresh_token
         )
@@ -189,7 +195,7 @@ class MieleOAuth(object):
 
         return token
 
-    def _delete_token(self):
+    def _delete_token(self) -> None:
         if self._cache_path:
             try:
                 os.remove(self._cache_path)
@@ -199,7 +205,7 @@ class MieleOAuth(object):
 
         self._token = None
 
-    def _new_session(self, redirect_uri):
+    def _new_session(self, redirect_uri: str) -> None:
         self._session = OAuth2Session(
             self._client_id,
             auto_refresh_url=MieleOAuth.OAUTH_TOKEN_URL,
@@ -212,7 +218,7 @@ class MieleOAuth(object):
         if self.authorized:
             self.refresh_token()
 
-    def _save_token(self, token):
+    def _save_token(self, token: str) -> None:
         _LOGGER.debug("trying to save new token")
         if self._cache_path:
             try:
@@ -220,7 +226,7 @@ class MieleOAuth(object):
                 f.write(json.dumps(token))
                 f.close()
             except IOError:
-                _LOGGER._warn(
+                _LOGGER.warning(
                     "Couldn't write token cache to {0}".format(self._cache_path)
                 )
                 pass

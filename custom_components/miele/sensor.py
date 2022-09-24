@@ -5,9 +5,12 @@ from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, Sensor
 from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
+from homeassistant.helpers.typing import HomeAssistantType, ConfigType
 
+from typing import Callable
 from custom_components.miele import DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
+from custom_components.miele.device_template import Device, State
 
 PLATFORMS = ["miele"]
 
@@ -35,7 +38,7 @@ STATUS_SUPERCOOLING_SUPERFREEZING = 146
 STATUS_NOT_CONNECTED = 255
 
 
-def _map_key(key):
+def _map_key(key: str) -> str:
     if key == "status":
         return "Status"
     elif key == "ProgramID":
@@ -60,7 +63,7 @@ def _map_key(key):
         return "Water Consumption"
 
 
-def state_capability(type, state):
+def state_capability(type: int, state: str) -> bool:
     type_str = str(type)
     capabilities = {
         "1": [
@@ -328,7 +331,7 @@ def state_capability(type, state):
         return True
 
 
-def _is_running(device_status):
+def _is_running(device_status) -> bool:
     return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED]
 
 
@@ -342,53 +345,53 @@ def _to_seconds(time_array):
 
 
 # pylint: disable=W0612
-def setup_platform(hass, config, add_devices, discovery_info=None):
+def setup_platform(hass: HomeAssistantType, config: ConfigType, add_devices: Callable, discovery_info=None) -> None:
     global ALL_DEVICES
 
-    devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
+    devices: dict[str, Device] = hass.data[MIELE_DOMAIN][DATA_DEVICES]
     for k, device in devices.items():
         device_state = device["state"]
         device_type = device["ident"]["type"]["value_raw"]
 
         sensors = []
         if "status" in device_state and state_capability(
-            type=device_type, state="status"
+                type=device_type, state="status"
         ):
             sensors.append(MieleStatusSensor(hass, device, "status"))
 
         if "ProgramID" in device_state and state_capability(
-            type=device_type, state="ProgramID"
+                type=device_type, state="ProgramID"
         ):
             sensors.append(MieleTextSensor(hass, device, "ProgramID"))
 
         if "targetTemperature" in device_state and state_capability(
-            type=device_type, state="targetTemperature"
+                type=device_type, state="targetTemperature"
         ):
             for i, val in enumerate(device_state["targetTemperature"]):
                 sensors.append(
                     MieleTemperatureSensor(hass, device, "targetTemperature", i)
                 )
         if "temperature" in device_state and state_capability(
-            type=device_type, state="temperature"
+                type=device_type, state="temperature"
         ):
             for i, val in enumerate(device_state["temperature"]):
                 sensors.append(MieleTemperatureSensor(hass, device, "temperature", i))
 
         if "remainingTime" in device_state and state_capability(
-            type=device_type, state="remainingTime"
+                type=device_type, state="remainingTime"
         ):
             sensors.append(MieleTimeSensor(hass, device, "remainingTime"))
         if "startTime" in device_state and state_capability(
-            type=device_type, state="startTime"
+                type=device_type, state="startTime"
         ):
             sensors.append(MieleTimeSensor(hass, device, "startTime"))
         if "elapsedTime" in device_state and state_capability(
-            type=device_type, state="elapsedTime"
+                type=device_type, state="elapsedTime"
         ):
             sensors.append(MieleTimeSensor(hass, device, "elapsedTime"))
 
         if "ecoFeedback" in device_state and state_capability(
-            type=device_type, state="ecoFeedback"
+                type=device_type, state="ecoFeedback"
         ):
             sensors.append(
                 MieleConsumptionSensor(hass, device, "energyConsumption", "kWh")
@@ -401,7 +404,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         ALL_DEVICES = ALL_DEVICES + sensors
 
 
-def update_device_state():
+def update_device_state() -> None:
     for device in ALL_DEVICES:
         try:
             device.async_schedule_update_ha_state(True)
@@ -413,23 +416,23 @@ def update_device_state():
 
 
 class MieleRawSensor(Entity):
-    def __init__(self, hass, device, key):
+    def __init__(self, hass: HomeAssistantType, device: Device, key: str):
         self._hass = hass
         self._device = device
         self._key = key
 
     @property
-    def device_id(self):
+    def device_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self.device_id + "_" + self._key
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         ident = self._device["ident"]
 
@@ -445,7 +448,7 @@ class MieleRawSensor(Entity):
 
         return self._device["state"][self._key]["value_raw"]
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
         else:
@@ -453,23 +456,23 @@ class MieleRawSensor(Entity):
 
 
 class MieleSensorEntity(SensorEntity):
-    def __init__(self, hass, device, key):
+    def __init__(self, hass: HomeAssistantType, device: Device, key: str):
         self._hass = hass
         self._device = device
         self._key = key
 
     @property
-    def device_id(self):
+    def device_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self.device_id + "_" + self._key
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         ident = self._device["ident"]
 
@@ -479,7 +482,7 @@ class MieleSensorEntity(SensorEntity):
         else:
             return result + " " + _map_key(self._key)
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
         else:
@@ -488,16 +491,15 @@ class MieleSensorEntity(SensorEntity):
 
 class MieleStatusSensor(MieleRawSensor):
     @property
-    def state(self):
+    def state(self) -> str | int:
         """Return the state of the sensor."""
         result = self._device["state"]["status"]["value_localized"]
-        if result == None:
-            result = self._device["state"]["status"]["value_raw"]
-
+        if result is None:
+            return self._device["state"]["status"]["value_raw"]
         return result
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, str | int | float | None]:
         """Attributes."""
         device_state = self._device["state"]
 
@@ -590,28 +592,28 @@ class MieleStatusSensor(MieleRawSensor):
             else:
                 now = datetime.now()
                 attributes["finishTime"] = (
-                    now
-                    + timedelta(seconds=startTime)
-                    + timedelta(seconds=remainingTime)
+                        now
+                        + timedelta(seconds=startTime)
+                        + timedelta(seconds=remainingTime)
                 ).strftime("%H:%M")
 
             # Calculate start time
             if startTime == 0:
                 now = datetime.now()
                 attributes["kickoffTime"] = (
-                    now - timedelta(seconds=elapsedTime)
+                        now - timedelta(seconds=elapsedTime)
                 ).strftime("%H:%M")
             else:
                 now = datetime.now()
                 attributes["kickoffTime"] = (
-                    now + timedelta(seconds=startTime)
+                        now + timedelta(seconds=startTime)
                 ).strftime("%H:%M")
 
         return attributes
 
 
 class MieleConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, key, measurement):
+    def __init__(self, hass: HomeAssistantType, device: Device, key: str, measurement: str) -> None:
         super().__init__(hass, device, key)
 
         self._attr_native_unit_of_measurement = measurement
@@ -622,7 +624,7 @@ class MieleConsumptionSensor(MieleSensorEntity):
             self._attr_device_class = DEVICE_CLASS_ENERGY
 
     @property
-    def state(self):
+    def state(self) -> int:
         """Return the state of the sensor."""
         device_state = self._device["state"]
         device_status_value = self._device["state"]["status"]["value_raw"]
@@ -639,9 +641,9 @@ class MieleConsumptionSensor(MieleSensorEntity):
         # sane again, otherwise the statistics generated from this
         # sensor would be messed up.
         if (
-            "ecoFeedback" not in device_state
-            or device_state["ecoFeedback"] is None
-            or device_status_value == STATUS_NOT_CONNECTED
+                "ecoFeedback" not in device_state
+                or device_state["ecoFeedback"] is None
+                or device_status_value == STATUS_NOT_CONNECTED
         ):
             if self._cached_consumption > 0:
                 return self._cached_consumption
@@ -680,7 +682,7 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
 class MieleTimeSensor(MieleRawSensor):
     @property
-    def state(self):
+    def state(self) -> None | str:
         """Return the state of the sensor."""
         state_value = self._device["state"][self._key]
         if len(state_value) != 2:
@@ -690,24 +692,24 @@ class MieleTimeSensor(MieleRawSensor):
 
 
 class MieleTemperatureSensor(Entity):
-    def __init__(self, hass, device, key, index):
+    def __init__(self, hass:HomeAssistantType, device:Device, key:str, index:int):
         self._hass = hass
         self._device = device
         self._key = key
         self._index = index
 
     @property
-    def device_id(self):
+    def device_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self.device_id + "_" + self._key + "_{}".format(self._index)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         ident = self._device["ident"]
 
@@ -720,7 +722,7 @@ class MieleTemperatureSensor(Entity):
             return "{} {} {}".format(result, _map_key(self._key), self._index)
 
     @property
-    def state(self):
+    def state(self)-> int|None:
         """Return the state of the sensor."""
         state_value = self._device["state"][self._key][self._index]["value_raw"]
         if state_value == -32768:
@@ -729,7 +731,7 @@ class MieleTemperatureSensor(Entity):
             return state_value / 100
 
     @property
-    def unit_of_measurement(self):
+    def unit_of_measurement(self) -> str:
         """Return the unit of measurement of this entity, if any."""
         if self._device["state"][self._key][self._index]["unit"] == "Celsius":
             return "°C"
@@ -737,10 +739,10 @@ class MieleTemperatureSensor(Entity):
             return "°F"
 
     @property
-    def device_class(self):
+    def device_class(self) -> str:
         return "temperature"
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug(" Miele device disappeared: {}".format(self.device_id))
         else:
@@ -749,7 +751,7 @@ class MieleTemperatureSensor(Entity):
 
 class MieleTextSensor(MieleRawSensor):
     @property
-    def state(self):
+    def state(self) -> str|None:
         """Return the state of the sensor."""
         result = self._device["state"][self._key]["value_localized"]
         if result == "":

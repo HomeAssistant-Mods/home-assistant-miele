@@ -1,8 +1,8 @@
 import logging
 import math
 from datetime import timedelta
-from typing import Optional
-
+from typing import Optional, Callable
+from homeassistant.core import HomeAssistant
 from homeassistant.components.fan import SUPPORT_SET_SPEED, FanEntity
 from homeassistant.helpers.entity import Entity
 from homeassistant.util.percentage import (
@@ -13,6 +13,8 @@ from homeassistant.util.percentage import (
 
 from custom_components.miele import DATA_CLIENT, DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
+from custom_components.miele.device_template import Device
+from homeassistant.helpers.typing import ConfigType
 
 PLATFORMS = ["miele"]
 
@@ -22,12 +24,11 @@ ALL_DEVICES = []
 
 SUPPORTED_TYPES = [18]
 
-
 SPEED_RANGE = (1, 4)
 
 
 # pylint: disable=W0612
-def setup_platform(hass, config, add_devices, discovery_info=None):
+def setup_platform(hass: HomeAssistant, config: ConfigType, add_devices: Callable, discovery_info=None) -> None:
     global ALL_DEVICES
 
     devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
@@ -42,7 +43,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         ALL_DEVICES = ALL_DEVICES + fan_devices
 
 
-def update_device_state():
+def update_device_state() -> None:
     for device in ALL_DEVICES:
         try:
             device.async_schedule_update_ha_state(True)
@@ -54,24 +55,24 @@ def update_device_state():
 
 
 class MieleFan(FanEntity):
-    def __init__(self, hass, device):
+    def __init__(self, hass: HomeAssistant, device: Device) -> None:
         self._hass = hass
         self._device = device
         self._ha_key = "fan"
         self._current_speed = 0
 
     @property
-    def device_id(self):
+    def device_id(self) -> str:
         """Return the unique ID for this fan."""
         return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID for this fan."""
         return self.device_id
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the fan."""
         ident = self._device["ident"]
 
@@ -82,17 +83,17 @@ class MieleFan(FanEntity):
             return result
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return the state of the fan."""
         return self._device["state"]["ventilationStep"]["value_raw"] != 0
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> int:
         """Flag supported features."""
         return SUPPORT_SET_SPEED
 
     @property
-    def speed(self):
+    def speed(self) -> int:
         """Return the current speed"""
         return self._device["state"]["ventilationStep"]["value_raw"]
 
@@ -156,7 +157,7 @@ class MieleFan(FanEntity):
             device_id=self.device_id, body={"ventilationStep": value_in_range}
         )
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device not found: {}".format(self.device_id))
         else:

@@ -6,6 +6,10 @@ from homeassistant.helpers.entity import Entity
 
 from custom_components.miele import DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
+from typing import Callable
+from custom_components.miele.device_template import Device
 
 PLATFORMS = ["miele"]
 
@@ -14,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 ALL_DEVICES = []
 
 
-def _map_key(key):
+def _map_key(key: str) -> str:
     if key == "signalInfo":
         return "Info"
     elif key == "signalFailure":
@@ -24,10 +28,10 @@ def _map_key(key):
 
 
 # pylint: disable=W0612
-def setup_platform(hass, config, add_devices, discovery_info=None):
+def setup_platform(hass: HomeAssistant, config: ConfigType, add_devices: Callable, discovery_info=None) -> None:
     global ALL_DEVICES
 
-    devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
+    devices: dict[str, Device] = hass.data[MIELE_DOMAIN][DATA_DEVICES]
     for k, device in devices.items():
         device_state = device["state"]
 
@@ -43,7 +47,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         ALL_DEVICES = ALL_DEVICES + binary_devices
 
 
-def update_device_state():
+def update_device_state() -> None:
     for device in ALL_DEVICES:
         try:
             device.async_schedule_update_ha_state(True)
@@ -55,24 +59,24 @@ def update_device_state():
 
 
 class MieleBinarySensor(BinarySensorEntity):
-    def __init__(self, hass, device, key):
+    def __init__(self, hass: HomeAssistant, device: Device, key: str) -> None:
         self._hass = hass
         self._device = device
         self._key = key
         self._ha_key = _map_key(key)
 
     @property
-    def device_id(self):
+    def device_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self.device_id + "_" + self._ha_key
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         ident = self._device["ident"]
 
@@ -83,18 +87,18 @@ class MieleBinarySensor(BinarySensorEntity):
             return result + " " + self._ha_key
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return the state of the sensor."""
         return bool(self._device["state"][self._key])
 
     @property
-    def device_class(self):
+    def device_class(self) -> str:
         if self._key == "signalDoor":
             return "door"
         else:
             return "problem"
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device not found: {}".format(self.device_id))
         else:

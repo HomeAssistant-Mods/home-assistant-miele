@@ -1,9 +1,11 @@
 """
 Support for Miele.
 """
+from __future__ import annotations
 import asyncio
 import functools
 import logging
+from typing import Callable
 from datetime import timedelta
 from importlib import import_module
 
@@ -19,12 +21,14 @@ from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.network import get_url
 from homeassistant.helpers.storage import STORAGE_DIR
+from homeassistant.helpers.typing import ConfigType, ServiceCallType, HomeAssistantType
 
 from .miele_at_home import MieleClient, MieleOAuth
+from custom_components.miele.device_template import Device, Result
 
 _LOGGER = logging.getLogger(__name__)
 
-DEVICES = []
+DEVICES: list[MieleDevice] = []
 
 DEFAULT_NAME = "Miele@home"
 DOMAIN = "miele"
@@ -69,10 +73,10 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-def request_configuration(hass, config, oauth):
+def request_configuration(hass: HomeAssistantType, config: ConfigType, oauth: MieleOAuth) -> None:
     """Request Miele authorization."""
 
-    async def miele_configuration_callback(callback_data):
+    async def miele_configuration_callback(callback_data) -> None:
         if not hass.data[DOMAIN][DATA_OAUTH].authorized:
             configurator.async_notify_errors(
                 _CONFIGURING[DOMAIN], "Failed to register, please try again."
@@ -99,11 +103,11 @@ def request_configuration(hass, config, oauth):
     return
 
 
-def create_sensor(client, hass, home_device, lang):
+def create_sensor(client: MieleClient, hass: HomeAssistantType, home_device: Device, lang: str) -> MieleDevice:
     return MieleDevice(hass, client, home_device, lang)
 
 
-def _to_dict(items):
+def _to_dict(items: list[Device]) -> dict[str, Device]:
     # Replace with map()
     result = {}
     for item in items:
@@ -113,7 +117,7 @@ def _to_dict(items):
     return result
 
 
-async def async_setup(hass, config):
+async def async_setup(hass: HomeAssistantType, config: ConfigType) -> bool:
     """Set up the Miele platform."""
 
     if DOMAIN not in hass.data:
@@ -124,9 +128,11 @@ async def async_setup(hass, config):
             network.get_url(hass, allow_external=True, prefer_external=True),
             AUTH_CALLBACK_PATH,
         )
+
         cache = config[DOMAIN].get(
             CONF_CACHE_PATH, hass.config.path(STORAGE_DIR, f".miele-token-cache")
         )
+
         hass.data[DOMAIN][DATA_OAUTH] = MieleOAuth(
             hass,
             config[DOMAIN].get(CONF_CLIENT_ID),
@@ -163,7 +169,7 @@ async def async_setup(hass, config):
     for component in MIELE_COMPONENTS:
         load_platform(hass, component, DOMAIN, {}, config)
 
-    async def refresh_devices(event_time):
+    async def refresh_devices(event_time) -> None:
         _LOGGER.debug("Attempting to update Miele devices")
         try:
             device_state = await client.get_devices(lang)
@@ -188,12 +194,12 @@ async def async_setup(hass, config):
     return True
 
 
-def register_services(hass):
+def register_services(hass: HomeAssistantType) -> None:
     """Register all services for Miele devices."""
     hass.services.async_register(DOMAIN, SERVICE_ACTION, _action_service)
 
 
-async def _apply_service(service, service_func, *service_func_args):
+async def _apply_service(service: ServiceCallType, service_func: Callable, *service_func_args) -> None:
     entity_ids = service.data.get("entity_id")
 
     _devices = []
@@ -212,7 +218,7 @@ async def _apply_service(service, service_func, *service_func_args):
         await service_func(device, *service_func_args)
 
 
-async def _action_service(service):
+async def _action_service(service: ServiceCallType) -> None:
     body = service.data.get("body")
     await _apply_service(service, MieleDevice.action, body)
 
@@ -224,15 +230,15 @@ class MieleAuthCallbackView(HomeAssistantView):
     url = AUTH_CALLBACK_PATH
     name = AUTH_CALLBACK_NAME
 
-    def __init__(self, config, oauth):
+    def __init__(self, config: ConfigType, oauth: MieleOAuth) -> None:
         """Initialize."""
         self.config = config
         self.oauth = oauth
 
     @callback
-    async def get(self, request):
+    async def get(self, request: web.Request) -> web.Response:
         """Receive authorization token."""
-        hass = request.app["hass"]
+        hass: HomeAssistantType = request.app["hass"]
 
         from oauthlib.oauth2.rfc6749.errors import (
             MismatchingStateError,
@@ -285,19 +291,19 @@ class MieleAuthCallbackView(HomeAssistantView):
 
 
 class MieleDevice(Entity):
-    def __init__(self, hass, client, home_device, lang):
+    def __init__(self, hass: HomeAssistantType, client: MieleClient, home_device: dict, lang: str) -> None:
         self._hass = hass
         self._client = client
         self._home_device = home_device
         self._lang = lang
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return the unique ID for this sensor."""
         return self._home_device["ident"]["deviceIdentLabel"]["fabNumber"]
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
 
         ident = self._home_device["ident"]
@@ -309,7 +315,7 @@ class MieleDevice(Entity):
         return result
 
     @property
-    def state(self):
+    def state(self) -> str:
         """Return the state of the sensor."""
 
         result = self._home_device["state"]["status"]["value_localized"]
@@ -319,10 +325,10 @@ class MieleDevice(Entity):
         return result
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> Result:
         """Attributes."""
 
-        result = {}
+        result: Result = dict()
         result["state_raw"] = self._home_device["state"]["status"]["value_raw"]
 
         result["model"] = self._home_device["ident"]["deviceIdentLabel"]["techType"]
@@ -338,10 +344,10 @@ class MieleDevice(Entity):
 
         return result
 
-    async def action(self, action):
+    async def action(self, action: str) -> None:
         await self._client.action(self.unique_id, action)
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device not found: {}".format(self.unique_id))
         else:
