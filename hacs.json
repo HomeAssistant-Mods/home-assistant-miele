@@ -1,4 +1,4 @@
 {
-  "name": "Miele integration",
+  "name": "Miele integration (bertvansteen)",
   "iot_class": ["Cloud Polling"]
 }
