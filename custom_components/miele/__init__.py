@@ -35,6 +35,7 @@ DATA_OAUTH = "oauth"
 DATA_DEVICES = "devices"
 DATA_CLIENT = "client"
 SERVICE_ACTION = "action"
+SERVICE_PROGRAM = "program"
 SCOPE = "code"
 DEFAULT_LANG = "en"
 AUTH_CALLBACK_PATH = "/api/miele/callback"
@@ -191,6 +192,7 @@ async def async_setup(hass, config):
 def register_services(hass):
     """Register all services for Miele devices."""
     hass.services.async_register(DOMAIN, SERVICE_ACTION, _action_service)
+    hass.services.async_register(DOMAIN, SERVICE_PROGRAM, _program_service)
 
 
 async def _apply_service(service, service_func, *service_func_args):
@@ -215,6 +217,10 @@ async def _apply_service(service, service_func, *service_func_args):
 async def _action_service(service):
     body = service.data.get("body")
     await _apply_service(service, MieleDevice.action, body)
+
+async def _program_service(service):
+    body = service.data.get("body")
+    await _apply_service(service, MieleDevice.program, body)
 
 
 class MieleAuthCallbackView(HomeAssistantView):
@@ -340,6 +346,9 @@ class MieleDevice(Entity):
 
     async def action(self, action):
         await self._client.action(self.unique_id, action)
+
+    async def program(self, action):
+        await self._client.program(self.unique_id, action)
 
     async def async_update(self):
         if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:
