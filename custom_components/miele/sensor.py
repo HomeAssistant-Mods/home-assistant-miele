@@ -75,6 +75,10 @@ def _is_running(device_status):
     return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED, STATUS_PROGRAMME_INTERRUPTED]
 
 
+def _is_terminated(device_status):
+    return device_status in [STATUS_END_PROGRAMMED, STATUS_PROGRAMME_INTERRUPTED]
+
+
 def _to_seconds(time_array):
     if len(time_array) == 3:
         return time_array[0] * 3600 + time_array[1] * 60 + time_array[2]
@@ -462,12 +466,14 @@ class MieleTimeSensor(MieleRawSensor):
             self._cached_time = self._init_value
             return formatted_value
 
-        # As for energy consumption, also this information could become "00:00"
-        # when appliance is not reachable. Provide cached value in that case.
         if self._cached_time != self._init_value:
+            # As for energy consumption, also this information could become "00:00"
+            # when appliance is not reachable. Provide cached value in that case.
+            # Some appliances also clear time status when terminating program.
             if (
                 formatted_value is None
                 or device_status_value == STATUS_NOT_CONNECTED
+                or _is_terminated(device_status_value)
             ):
                 return self._cached_time
 
