@@ -148,7 +148,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         if "remainingTime" in device_state and state_capability(
             type=device_type, state="remainingTime"
         ):
-            sensors.append(MieleTimeSensor(hass, device, "remainingTime"))
+            sensors.append(MieleTimeSensor(hass, device, "remainingTime", True))
         if "startTime" in device_state and state_capability(
             type=device_type, state="startTime"
         ):
@@ -448,10 +448,11 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
 
 class MieleTimeSensor(MieleRawSensor):
-    def __init__(self, hass, device, key):
+    def __init__(self, hass, device, key, decreasing =False):
         super().__init__(hass, device, key)
         self._init_value = "--:--"
         self._cached_time = self._init_value
+        self._decreasing = decreasing
 
     @property
     def state(self):
@@ -470,7 +471,9 @@ class MieleTimeSensor(MieleRawSensor):
             # As for energy consumption, also this information could become "00:00"
             # when appliance is not reachable. Provide cached value in that case.
             # Some appliances also clear time status when terminating program.
-            if (
+            if self._decreasing and _is_terminated(device_status_value):
+                return formatted_value
+            elif (
                 formatted_value is None
                 or device_status_value == STATUS_NOT_CONNECTED
                 or _is_terminated(device_status_value)
