@@ -72,7 +72,7 @@ def state_capability(type, state):
 
 
 def _is_running(device_status):
-    return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED]
+    return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED, STATUS_PROGRAMME_INTERRUPTED]
 
 
 def _to_seconds(time_array):
@@ -398,6 +398,10 @@ class MieleConsumptionSensor(MieleSensorEntity):
         device_state = self._device["state"]
         device_status_value = self._device["state"]["status"]["value_raw"]
 
+        if not _is_running(device_status_value) and device_status_value != STATUS_NOT_CONNECTED:
+            self._cached_consumption = -1
+            return 0
+
         if self._cached_consumption >= 0:
             if (
                 "ecoFeedback" not in device_state
@@ -412,10 +416,6 @@ class MieleConsumptionSensor(MieleSensorEntity):
                 # sane again, otherwise the statistics generated from this
                 # sensor would be messed up.
                 return self._cached_consumption
-
-        if not _is_running(device_status_value):
-            self._cached_consumption = -1
-            return 0
 
         consumption = 0
         if self._key == "energyConsumption":
@@ -444,14 +444,35 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
 
 class MieleTimeSensor(MieleRawSensor):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+        self._init_value = "--:--"
+        self._cached_time = self._init_value
+
     @property
     def state(self):
         """Return the state of the sensor."""
         state_value = self._device["state"][self._key]
-        if len(state_value) != 2:
-            return None
-        else:
-            return "{:02d}:{:02d}".format(state_value[0], state_value[1])
+        device_status_value = self._device["state"]["status"]["value_raw"]
+        formatted_value = None
+        if len(state_value) == 2:
+            formatted_value = "{:02d}:{:02d}".format(state_value[0], state_value[1])
+
+        if not _is_running(device_status_value) and device_status_value != STATUS_NOT_CONNECTED:
+            self._cached_time = self._init_value
+            return formatted_value
+
+        # As for energy consumption, also this information could become "00:00"
+        # when appliance is not reachable. Provide cached value in that case.
+        if self._cached_time != self._init_value:
+            if (
+                formatted_value is None
+                or device_status_value == STATUS_NOT_CONNECTED
+            ):
+                return self._cached_time
+
+        self._cached_time = formatted_value
+        return formatted_value
 
 
 class MieleTemperatureSensor(Entity):
