@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
-from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
-from homeassistant.const import DEVICE_CLASS_ENERGY
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.const import DEVICE_CLASS_ENERGY, DEVICE_CLASS_BATTERY
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
@@ -63,6 +63,8 @@ def _map_key(key):
         return "Energy"
     elif key == "waterConsumption":
         return "Water Consumption"
+    elif key == "batteryLevel":
+        return "Battery Level"
 
 
 def state_capability(type, state):
@@ -170,6 +172,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         ):
             sensors.append(
                 MieleConsumptionSensor(hass, device, "waterConsumption", "L")
+            )
+
+        if "batteryLevel" in device_state and state_capability(
+            type=device_type, state="batteryLevel"
+        ):
+            sensors.append(
+                MieleBatterySensor(hass, device, "batteryLevel")
             )
 
         add_devices(sensors)
@@ -391,7 +400,7 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
-        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
 
         if key == "energyConsumption":
             self._attr_device_class = DEVICE_CLASS_ENERGY
@@ -551,3 +560,15 @@ class MieleTextSensor(MieleRawSensor):
             result = None
 
         return result
+
+
+class MieleBatterySensor(MieleSensorEntity):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+        self._attr_device_class = DEVICE_CLASS_BATTERY
+        self._attr_native_unit_of_measurement = "%"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def state(self):
+        return self._device["state"][self._key]
