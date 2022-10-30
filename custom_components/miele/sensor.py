@@ -116,6 +116,15 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                 sensors.append(
                     MieleTemperatureSensor(hass, device, "targetTemperature", i)
                 )
+
+        # washer, washer-dryer and dishwasher only have first target temperarure sensor
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature.0"
+        ):
+            sensors.append(
+                MieleTemperatureSensor(hass, device, "targetTemperature", 0)
+            )
+
         if "temperature" in device_state and state_capability(
             type=device_type, state="temperature"
         ):
