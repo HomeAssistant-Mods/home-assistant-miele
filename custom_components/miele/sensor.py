@@ -65,6 +65,10 @@ def _map_key(key):
         return "Water Consumption"
     elif key == "batteryLevel":
         return "Battery Level"
+    elif key == "energyForecast":
+        return "Energy cons. forecast"
+    elif key == "waterForecast":
+        return "Water cons. forecast"
 
 
 def state_capability(type, state):
@@ -166,12 +170,18 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             sensors.append(
                 MieleConsumptionSensor(hass, device, "energyConsumption", "kWh")
             )
+            sensors.append(
+                MieleConsumptionForecastSensor(hass, device, "energyForecast")
+            )
 
         if "ecoFeedback" in device_state and state_capability(
                 type=device_type, state="ecoFeedback.waterConsumption"
         ):
             sensors.append(
                 MieleConsumptionSensor(hass, device, "waterConsumption", "L")
+            )
+            sensors.append(
+                MieleConsumptionForecastSensor(hass, device, "waterForecast")
             )
 
         if "batteryLevel" in device_state and state_capability(
@@ -575,3 +585,20 @@ class MieleBatterySensor(MieleSensorEntity):
     @property
     def state(self):
         return self._device["state"][self._key]
+
+
+class MieleConsumptionForecastSensor(MieleSensorEntity):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+        self._attr_native_unit_of_measurement = "%"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        device_state = self._device["state"]
+
+        if device_state["ecoFeedback"] is not None and self._key in device_state["ecoFeedback"]:
+            return device_state["ecoFeedback"][self._key] * 100;
+
+        return None
