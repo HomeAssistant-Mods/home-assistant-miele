@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.const import DEVICE_CLASS_ENERGY, DEVICE_CLASS_BATTERY
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
@@ -168,7 +167,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             type=device_type, state="ecoFeedback.energyConsumption"
         ):
             sensors.append(
-                MieleConsumptionSensor(hass, device, "energyConsumption", "kWh")
+                MieleConsumptionSensor(hass, device, "energyConsumption", "kWh", SensorDeviceClass.ENERGY)
             )
             sensors.append(
                 MieleConsumptionForecastSensor(hass, device, "energyForecast")
@@ -178,7 +177,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                 type=device_type, state="ecoFeedback.waterConsumption"
         ):
             sensors.append(
-                MieleConsumptionSensor(hass, device, "waterConsumption", "L")
+                MieleConsumptionSensor(hass, device, "waterConsumption", "L", None)
             )
             sensors.append(
                 MieleConsumptionForecastSensor(hass, device, "waterForecast")
@@ -405,15 +404,13 @@ class MieleStatusSensor(MieleRawSensor):
 
 
 class MieleConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, key, measurement):
+    def __init__(self, hass, device, key, measurement, device_class):
         super().__init__(hass, device, key)
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-
-        if key == "energyConsumption":
-            self._attr_device_class = DEVICE_CLASS_ENERGY
+        self._attr_device_class = device_class
 
     @property
     def state(self):
@@ -578,7 +575,7 @@ class MieleTextSensor(MieleRawSensor):
 class MieleBatterySensor(MieleSensorEntity):
     def __init__(self, hass, device, key):
         super().__init__(hass, device, key)
-        self._attr_device_class = DEVICE_CLASS_BATTERY
+        self._attr_device_class = SensorDeviceClass.BATTERY
         self._attr_native_unit_of_measurement = "%"
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
