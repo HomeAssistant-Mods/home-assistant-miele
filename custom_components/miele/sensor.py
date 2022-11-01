@@ -77,7 +77,7 @@ def state_capability(type, state):
 
 
 def _is_running(device_status):
-    return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED, STATUS_PROGRAMME_INTERRUPTED]
+    return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED, STATUS_PROGRAMME_INTERRUPTED, STATUS_RINSE_HOLD]
 
 
 def _is_terminated(device_status):
