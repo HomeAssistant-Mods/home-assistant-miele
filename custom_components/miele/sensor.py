@@ -128,7 +128,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             type=device_type, state="targetTemperature.0"
         ):
             sensors.append(
-                MieleTemperatureSensor(hass, device, "targetTemperature", 0)
+                MieleTemperatureSensor(hass, device, "targetTemperature", 0, True)
             )
 
         if "temperature" in device_state and state_capability(
@@ -494,11 +494,12 @@ class MieleTimeSensor(MieleRawSensor):
 
 
 class MieleTemperatureSensor(Entity):
-    def __init__(self, hass, device, key, index):
+    def __init__(self, hass, device, key, index, force_int =False):
         self._hass = hass
         self._device = device
         self._key = key
         self._index = index
+        self._force_int = force_int
 
     @property
     def device_id(self):
@@ -529,6 +530,8 @@ class MieleTemperatureSensor(Entity):
         state_value = self._device["state"][self._key][self._index]["value_raw"]
         if state_value == -32768:
             return None
+        elif self._force_int:
+            return int(state_value / 100)
         else:
             return state_value / 100
 
