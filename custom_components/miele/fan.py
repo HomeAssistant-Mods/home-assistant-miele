@@ -84,7 +84,8 @@ class MieleFan(FanEntity):
     @property
     def is_on(self):
         """Return the state of the fan."""
-        return self._device["state"]["ventilationStep"]["value_raw"] != 0
+        value_raw = self._device["state"]["ventilationStep"]["value_raw"]
+        return value_raw != None and value_raw != 0
 
     @property
     def supported_features(self):

@@ -5,7 +5,7 @@ from homeassistant.components.sensor import SensorEntity, SensorStateClass, Sens
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
-from custom_components.miele import DATA_DEVICES
+from custom_components.miele import CAPABILITIES, DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
 from custom_components.miele import CAPABILITIES
 
@@ -114,7 +114,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             sensors.append(MieleTextSensor(hass, device, "ProgramID"))
 
         if "programPhase" in device_state and state_capability(
-                type=device_type, state="programPhase"
+            type=device_type, state="programPhase"
         ):
             sensors.append(MieleTextSensor(hass, device, "programPhase"))
 
@@ -141,12 +141,12 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                 sensors.append(MieleTemperatureSensor(hass, device, "temperature", i))
 
         if "dryingStep" in device_state and state_capability(
-                type=device_type, state="dryingStep"
+            type=device_type, state="dryingStep"
         ):
             sensors.append(MieleTextSensor(hass, device, "dryingStep"))
 
         if "spinningSpeed" in device_state and state_capability(
-                type=device_type, state="spinningSpeed"
+            type=device_type, state="spinningSpeed"
         ):
             sensors.append(MieleTextSensor(hass, device, "spinningSpeed"))
 
@@ -169,6 +169,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             sensors.append(
                 MieleConsumptionSensor(hass, device, "energyConsumption", "kWh", SensorDeviceClass.ENERGY)
             )
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.waterConsumption"
+        ):
             sensors.append(
                 MieleConsumptionForecastSensor(hass, device, "energyForecast")
             )
