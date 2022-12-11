@@ -1,8 +1,11 @@
 import logging
 from datetime import datetime, timedelta
 
-from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
-from homeassistant.const import DEVICE_CLASS_ENERGY
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_registry import async_get_registry
 
@@ -62,6 +65,12 @@ def _map_key(key):
         return "Energy"
     elif key == "waterConsumption":
         return "Water Consumption"
+    elif key == "batteryLevel":
+        return "Battery Level"
+    elif key == "energyForecast":
+        return "Energy cons. forecast"
+    elif key == "waterForecast":
+        return "Water cons. forecast"
 
 
 def state_capability(type, state):
@@ -71,7 +80,17 @@ def state_capability(type, state):
 
 
 def _is_running(device_status):
-    return device_status in [STATUS_RUNNING, STATUS_PAUSE, STATUS_END_PROGRAMMED]
+    return device_status in [
+        STATUS_RUNNING,
+        STATUS_PAUSE,
+        STATUS_END_PROGRAMMED,
+        STATUS_PROGRAMME_INTERRUPTED,
+        STATUS_RINSE_HOLD,
+    ]
+
+
+def _is_terminated(device_status):
+    return device_status in [STATUS_END_PROGRAMMED, STATUS_PROGRAMME_INTERRUPTED]
 
 
 def _to_seconds(time_array):
@@ -115,6 +134,15 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                 sensors.append(
                     MieleTemperatureSensor(hass, device, "targetTemperature", i)
                 )
+
+        # washer, washer-dryer and dishwasher only have first target temperarure sensor
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature.0"
+        ):
+            sensors.append(
+                MieleTemperatureSensor(hass, device, "targetTemperature", 0, True)
+            )
+
         if "temperature" in device_state and state_capability(
             type=device_type, state="temperature"
         ):
@@ -134,7 +162,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         if "remainingTime" in device_state and state_capability(
             type=device_type, state="remainingTime"
         ):
-            sensors.append(MieleTimeSensor(hass, device, "remainingTime"))
+            sensors.append(MieleTimeSensor(hass, device, "remainingTime", True))
         if "startTime" in device_state and state_capability(
             type=device_type, state="startTime"
         ):
@@ -148,15 +176,32 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             type=device_type, state="ecoFeedback.energyConsumption"
         ):
             sensors.append(
-                MieleConsumptionSensor(hass, device, "energyConsumption", "kWh")
+                MieleConsumptionSensor(
+                    hass, device, "energyConsumption", "kWh", SensorDeviceClass.ENERGY
+                )
             )
 
         if "ecoFeedback" in device_state and state_capability(
             type=device_type, state="ecoFeedback.waterConsumption"
         ):
             sensors.append(
-                MieleConsumptionSensor(hass, device, "waterConsumption", "L")
+                MieleConsumptionForecastSensor(hass, device, "energyForecast")
             )
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.waterConsumption"
+        ):
+            sensors.append(
+                MieleConsumptionSensor(hass, device, "waterConsumption", "L", None)
+            )
+            sensors.append(
+                MieleConsumptionForecastSensor(hass, device, "waterForecast")
+            )
+
+        if "batteryLevel" in device_state and state_capability(
+            type=device_type, state="batteryLevel"
+        ):
+            sensors.append(MieleBatterySensor(hass, device, "batteryLevel"))
 
         add_devices(sensors)
         ALL_DEVICES = ALL_DEVICES + sensors
@@ -372,15 +417,13 @@ class MieleStatusSensor(MieleRawSensor):
 
 
 class MieleConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, key, measurement):
+    def __init__(self, hass, device, key, measurement, device_class):
         super().__init__(hass, device, key)
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
-        self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
-
-        if key == "energyConsumption":
-            self._attr_device_class = DEVICE_CLASS_ENERGY
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_device_class = device_class
 
     @property
     def state(self):
@@ -388,30 +431,27 @@ class MieleConsumptionSensor(MieleSensorEntity):
         device_state = self._device["state"]
         device_status_value = self._device["state"]["status"]["value_raw"]
 
-        if not _is_running(device_status_value):
-            self._cached_consumption = -1
-            return 0
-
-        # Sometimes the Miele API seems to return a null ecoFeedback
-        # object even though the Miele device is running. Or if the the
-        # Miele device has lost the connection to the Miele cloud, the
-        # status is "not connected". Either way, we need to return the
-        # last known value until the API starts returning something
-        # sane again, otherwise the statistics generated from this
-        # sensor would be messed up.
         if (
-            "ecoFeedback" not in device_state
-            or device_state["ecoFeedback"] is None
-            or device_status_value == STATUS_NOT_CONNECTED
+            not _is_running(device_status_value)
+            and device_status_value != STATUS_NOT_CONNECTED
         ):
-            if self._cached_consumption > 0:
-                return self._cached_consumption
-            else:
-                return 0
-
-        if not _is_running(device_status_value):
             self._cached_consumption = -1
             return 0
+
+        if self._cached_consumption >= 0:
+            if (
+                "ecoFeedback" not in device_state
+                or device_state["ecoFeedback"] is None
+                or device_status_value == STATUS_NOT_CONNECTED
+            ):
+                # Sometimes the Miele API seems to return a null ecoFeedback
+                # object even though the Miele device is running. Or if the the
+                # Miele device has lost the connection to the Miele cloud, the
+                # status is "not connected". Either way, we need to return the
+                # last known value until the API starts returning something
+                # sane again, otherwise the statistics generated from this
+                # sensor would be messed up.
+                return self._cached_consumption
 
         consumption = 0
         if self._key == "energyConsumption":
@@ -440,22 +480,52 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
 
 class MieleTimeSensor(MieleRawSensor):
+    def __init__(self, hass, device, key, decreasing=False):
+        super().__init__(hass, device, key)
+        self._init_value = "--:--"
+        self._cached_time = self._init_value
+        self._decreasing = decreasing
+
     @property
     def state(self):
         """Return the state of the sensor."""
         state_value = self._device["state"][self._key]
-        if len(state_value) != 2:
-            return None
-        else:
-            return "{:02d}:{:02d}".format(state_value[0], state_value[1])
+        device_status_value = self._device["state"]["status"]["value_raw"]
+        formatted_value = None
+        if len(state_value) == 2:
+            formatted_value = "{:02d}:{:02d}".format(state_value[0], state_value[1])
+
+        if (
+            not _is_running(device_status_value)
+            and device_status_value != STATUS_NOT_CONNECTED
+        ):
+            self._cached_time = self._init_value
+            return formatted_value
+
+        if self._cached_time != self._init_value:
+            # As for energy consumption, also this information could become "00:00"
+            # when appliance is not reachable. Provide cached value in that case.
+            # Some appliances also clear time status when terminating program.
+            if self._decreasing and _is_terminated(device_status_value):
+                return formatted_value
+            elif (
+                formatted_value is None
+                or device_status_value == STATUS_NOT_CONNECTED
+                or _is_terminated(device_status_value)
+            ):
+                return self._cached_time
+
+        self._cached_time = formatted_value
+        return formatted_value
 
 
 class MieleTemperatureSensor(Entity):
-    def __init__(self, hass, device, key, index):
+    def __init__(self, hass, device, key, index, force_int=False):
         self._hass = hass
         self._device = device
         self._key = key
         self._index = index
+        self._force_int = force_int
 
     @property
     def device_id(self):
@@ -486,6 +556,8 @@ class MieleTemperatureSensor(Entity):
         state_value = self._device["state"][self._key][self._index]["value_raw"]
         if state_value == -32768:
             return None
+        elif self._force_int:
+            return int(state_value / 100)
         else:
             return state_value / 100
 
@@ -517,3 +589,35 @@ class MieleTextSensor(MieleRawSensor):
             result = None
 
         return result
+
+
+class MieleBatterySensor(MieleSensorEntity):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+        self._attr_device_class = SensorDeviceClass.BATTERY
+        self._attr_native_unit_of_measurement = "%"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def state(self):
+        return self._device["state"][self._key]
+
+
+class MieleConsumptionForecastSensor(MieleSensorEntity):
+    def __init__(self, hass, device, key):
+        super().__init__(hass, device, key)
+        self._attr_native_unit_of_measurement = "%"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        device_state = self._device["state"]
+
+        if (
+            device_state["ecoFeedback"] is not None
+            and self._key in device_state["ecoFeedback"]
+        ):
+            return device_state["ecoFeedback"][self._key] * 100
+
+        return None

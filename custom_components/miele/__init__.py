@@ -35,6 +35,8 @@ DATA_OAUTH = "oauth"
 DATA_DEVICES = "devices"
 DATA_CLIENT = "client"
 SERVICE_ACTION = "action"
+SERVICE_START_PROGRAM = "start_program"
+SERVICE_STOP_PROGRAM = "stop_program"
 SCOPE = "code"
 DEFAULT_LANG = "en"
 DEFAULT_INTERVAL = 5
@@ -79,9 +81,10 @@ CAPABILITIES = {
         "programPhase",
         "remainingTime",
         "startTime",
-        "targetTemperature",
+        "targetTemperature.0",
         "signalInfo",
         "signalFailure",
+        "signalDoor",
         "remoteEnable",
         "elapsedTime",
         "spinningSpeed",
@@ -97,6 +100,7 @@ CAPABILITIES = {
         "startTime",
         "signalInfo",
         "signalFailure",
+        "signalDoor",
         "remoteEnable",
         "elapsedTime",
         "dryingStep",
@@ -234,9 +238,11 @@ CAPABILITIES = {
         "programType",
         "programPhase",
         "remainingTime",
+        "targetTemperature.0",
         "startTime",
         "signalInfo",
         "signalFailure",
+        "signalDoor",
         "remoteEnable",
         "elapsedTime",
         "spinningSpeed",
@@ -335,6 +341,7 @@ CAPABILITIES = {
         "remoteEnable",
     ],
 }
+
 
 def request_configuration(hass, config, oauth):
     """Request Miele authorization."""
@@ -450,7 +457,6 @@ async def async_setup(hass, config):
     register_services(hass)
     interval = timedelta(seconds=config[DOMAIN].get(CONF_INTERVAL, DEFAULT_INTERVAL))
 
-    
     async_track_time_interval(hass, refresh_devices, interval)
 
     return True
@@ -459,6 +465,8 @@ async def async_setup(hass, config):
 def register_services(hass):
     """Register all services for Miele devices."""
     hass.services.async_register(DOMAIN, SERVICE_ACTION, _action_service)
+    hass.services.async_register(DOMAIN, SERVICE_START_PROGRAM, _action_start_program)
+    hass.services.async_register(DOMAIN, SERVICE_STOP_PROGRAM, _action_stop_program)
 
 
 async def _apply_service(service, service_func, *service_func_args):
@@ -482,6 +490,16 @@ async def _apply_service(service, service_func, *service_func_args):
 
 async def _action_service(service):
     body = service.data.get("body")
+    await _apply_service(service, MieleDevice.action, body)
+
+
+async def _action_start_program(service):
+    program_id = service.data.get("program_id")
+    await _apply_service(service, MieleDevice.start_program, program_id)
+
+
+async def _action_stop_program(service):
+    body = {"processAction": 2}
     await _apply_service(service, MieleDevice.action, body)
 
 
@@ -608,6 +626,9 @@ class MieleDevice(Entity):
 
     async def action(self, action):
         await self._client.action(self.unique_id, action)
+
+    async def start_program(self, program_id):
+        await self._client.start_program(self.unique_id, program_id)
 
     async def async_update(self):
         if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:
