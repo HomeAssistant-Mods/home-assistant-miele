@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
 from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.entity_registry import async_get
 
 from custom_components.miele import DATA_DEVICES
 from custom_components.miele import DOMAIN as MIELE_DOMAIN
