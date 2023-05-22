@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
-from homeassistant.const import DEVICE_CLASS_ENERGY
+from homeassistant.const import SensorDeviceClass.ENERGY
 from homeassistant.helpers.entity import Entity
 
 from custom_components.miele import DATA_DEVICES
@@ -618,7 +618,7 @@ class MieleConsumptionSensor(MieleSensorEntity):
         self._attr_state_class = STATE_CLASS_TOTAL_INCREASING
 
         if key == "energyConsumption":
-            self._attr_device_class = DEVICE_CLASS_ENERGY
+            self._attr_device_class = SensorDeviceClass.ENERGY
 
     @property
     def state(self):
