@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import STATE_CLASS_TOTAL_INCREASING, SensorEntity
-from homeassistant.const import SensorDeviceClass.ENERGY
+from homeassistant.const import SensorDeviceClass
 from homeassistant.helpers.entity import Entity
 
 from custom_components.miele import DATA_DEVICES
