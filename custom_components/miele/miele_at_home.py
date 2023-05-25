@@ -210,9 +210,12 @@ class MieleOAuth(object):
         self._save_token(self._token)
 
     def sync_refresh_token(self, token_url, body, refresh_token):
-        return self._session.refresh_token(
-            token_url, body=body, refresh_token=refresh_token
-        )
+        try:
+            return self._session.refresh_token(
+                token_url, body=body, refresh_token=refresh_token
+            )
+        except:
+            self._remove_token()
 
     def _get_cached_token(self):
         token = None
@@ -265,3 +268,14 @@ class MieleOAuth(object):
                 pass
 
         self._token = token
+
+    def _remove_token(self):
+        _LOGGER.debug("trying to REMOVE token to create it again on next startup so please re-startup and try again!")
+        if self._cache_path:
+            try:
+                os.remove(self._cache_path)
+            except IOError:
+                _LOGGER._warn(
+                    "Couldn't delte token cache to {0}".format(self._cache_path)
+                )
+                pass
