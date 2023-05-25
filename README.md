@@ -57,6 +57,7 @@ miele:
     client_secret: <your Miele ClientSecret>
     lang: <optional. en=english, de=german>
     cache_path: <optional. where to store the cached access token>
+    interval: <optional. the interval between miele polling updates>
 ```
 
 * Restart Home Assistant.

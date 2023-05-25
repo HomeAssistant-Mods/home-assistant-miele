@@ -35,14 +35,18 @@ DATA_OAUTH = "oauth"
 DATA_DEVICES = "devices"
 DATA_CLIENT = "client"
 SERVICE_ACTION = "action"
+SERVICE_START_PROGRAM = "start_program"
+SERVICE_STOP_PROGRAM = "stop_program"
 SCOPE = "code"
 DEFAULT_LANG = "en"
+DEFAULT_INTERVAL = 5
 AUTH_CALLBACK_PATH = "/api/miele/callback"
 AUTH_CALLBACK_NAME = "api:miele:callback"
 CONF_CLIENT_ID = "client_id"
 CONF_CLIENT_SECRET = "client_secret"
 CONF_LANG = "lang"
 CONF_CACHE_PATH = "cache_path"
+CONF_INTERVAL = "interval"
 CONFIGURATOR_LINK_NAME = "Link Miele account"
 CONFIGURATOR_SUBMIT_CAPTION = "I have authorized Miele@home."
 CONFIGURATOR_DESCRIPTION = (
@@ -62,11 +66,281 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_CLIENT_SECRET): cv.string,
                 vol.Optional(CONF_LANG): cv.string,
                 vol.Optional(CONF_CACHE_PATH): cv.string,
+                vol.Optional(CONF_INTERVAL): cv.positive_int,
             }
         ),
     },
     extra=vol.ALLOW_EXTRA,
 )
+
+CAPABILITIES = {
+    "1": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature.0",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+        "spinningSpeed",
+        "ecoFeedback.energyConsumption",
+        "ecoFeedback.waterConsumption",
+    ],
+    "2": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+        "dryingStep",
+        "ecoFeedback.energyConsumption",
+    ],
+    "7": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "signalInfo",
+        "signalFailure",
+        "remoteEnable",
+        "elapsedTime",
+        "ecoFeedback.energyConsumption",
+        "ecoFeedback.waterConsumption",
+    ],
+    "12": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "13": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "14": ["status", "signalFailure", "plateStep"],
+    "15": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "16": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "17": [
+        "ProgramID",
+        "status",
+        "programPhase",
+        "signalInfo",
+        "signalFailure",
+        "remoteEnable",
+    ],
+    "18": [
+        "status",
+        "signalInfo",
+        "signalFailure",
+        "remoteEnable",
+        "ventilationStep",
+    ],
+    "19": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+    ],
+    "20": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+    ],
+    "21": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+    ],
+    "23": [
+        "ProgramID",
+        "status",
+        "programType",
+        "signalInfo",
+        "signalFailure",
+        "remoteEnable",
+        "batteryLevel",
+    ],
+    "24": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "targetTemperature.0",
+        "startTime",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+        "spinningSpeed",
+        "dryingStep",
+        "ecoFeedback.energyConsumption",
+        "ecoFeedback.waterConsumption",
+    ],
+    "25": [
+        "status",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "elapsedTime",
+    ],
+    "27": ["status", "signalFailure", "plateStep"],
+    "31": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "32": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+    ],
+    "33": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+    ],
+    "34": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+    ],
+    "45": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "67": [
+        "ProgramID",
+        "status",
+        "programType",
+        "programPhase",
+        "remainingTime",
+        "startTime",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "signalDoor",
+        "remoteEnable",
+        "elapsedTime",
+    ],
+    "68": [
+        "status",
+        "targetTemperature",
+        "temperature",
+        "signalInfo",
+        "signalFailure",
+        "remoteEnable",
+    ],
+}
 
 
 def request_configuration(hass, config, oauth):
@@ -181,8 +455,8 @@ async def async_setup(hass, config):
                 platform.update_device_state()
 
     register_services(hass)
+    interval = timedelta(seconds=config[DOMAIN].get(CONF_INTERVAL, DEFAULT_INTERVAL))
 
-    interval = timedelta(seconds=5)
     async_track_time_interval(hass, refresh_devices, interval)
 
     return True
@@ -191,6 +465,8 @@ async def async_setup(hass, config):
 def register_services(hass):
     """Register all services for Miele devices."""
     hass.services.async_register(DOMAIN, SERVICE_ACTION, _action_service)
+    hass.services.async_register(DOMAIN, SERVICE_START_PROGRAM, _action_start_program)
+    hass.services.async_register(DOMAIN, SERVICE_STOP_PROGRAM, _action_stop_program)
 
 
 async def _apply_service(service, service_func, *service_func_args):
@@ -214,6 +490,16 @@ async def _apply_service(service, service_func, *service_func_args):
 
 async def _action_service(service):
     body = service.data.get("body")
+    await _apply_service(service, MieleDevice.action, body)
+
+
+async def _action_start_program(service):
+    program_id = service.data.get("program_id")
+    await _apply_service(service, MieleDevice.start_program, program_id)
+
+
+async def _action_stop_program(service):
+    body = {"processAction": 2}
     await _apply_service(service, MieleDevice.action, body)
 
 
@@ -340,6 +626,9 @@ class MieleDevice(Entity):
 
     async def action(self, action):
         await self._client.action(self.unique_id, action)
+
+    async def start_program(self, program_id):
+        await self._client.start_program(self.unique_id, program_id)
 
     async def async_update(self):
         if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:
