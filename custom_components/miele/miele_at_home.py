@@ -263,7 +263,7 @@ class MieleOAuth(object):
                 f.write(json.dumps(token))
                 f.close()
             except IOError:
-                _LOGGER._warn(
+                _LOGGER.warn(
                     "Couldn't write token cache to {0}".format(self._cache_path)
                 )
                 pass
@@ -276,7 +276,7 @@ class MieleOAuth(object):
             try:
                 os.remove(self._cache_path)
             except IOError:
-                _LOGGER._warn(
+                _LOGGER.warn(
                     "Couldn't delte token cache to {0}".format(self._cache_path)
                 )
                 pass
