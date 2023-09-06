@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import json
 import logging
@@ -174,7 +175,7 @@ class MieleOAuth(object):
         )
 
         if self.authorized:
-            self.refresh_token(hass)
+            asyncio.create_task(self.refresh_token(hass))
 
     @property
     def authorized(self):
