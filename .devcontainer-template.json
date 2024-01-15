@@ -1,0 +1,54 @@
+/*
+  Copy this file to .devcontainer.json
+  if using PODMAN, instead of DOCKER, uncomment the runArgs section
+
+  Change BUILD_TYPE to "dev" to use pytests and develop and "run" to use homeassistant
+*/
+{
+    "name": "HomeAssistant-Mods/home-assistant-miele",
+    "image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.11-bullseye",
+    "postCreateCommand": "scripts/setup",
+    "forwardPorts": [
+        8123
+    ],
+    "containerEnv": {
+        "BUILD_TYPE": "run"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "github.vscode-pull-request-github",
+                "mikestead.dotenv",
+                "ryanluker.vscode-coverage-gutters"
+            ],
+            "settings": {
+                "files.eol": "\n",
+                "files.associations": {
+                    "*.yaml": "home-assistant"
+                },
+                "editor.tabSize": 4,
+                "python.pythonPath": "/usr/bin/python3",
+                "python.analysis.autoSearchPaths": false,
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+                "python.experiments.enabled": false,
+                "editor.defaultFormatter": "ms-python.black-formatter",
+                "editor.formatOnPaste": false,
+                "editor.formatOnSave": true,
+                "editor.formatOnType": true,
+                "extensions.ignoreRecommendations": true,
+                "files.trimTrailingWhitespace": true
+            }
+        }
+    },
+    "remoteUser": "vscode",
+    "containerUser": "vscode",
+    //"runArgs": [
+    //    "--userns=keep-id"
+    //],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,Z"
+}
