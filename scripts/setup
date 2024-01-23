@@ -4,6 +4,16 @@ set -e
 
 cd "$(dirname "$0")/.."
 
+if [ ! -f ./ssl/fullchain.pem ]; then
+  mkdir ./ssl
+  openssl req -sha256 -addext "subjectAltName = IP:127.0.0.1" -newkey rsa:4096 -nodes \
+      -keyout ./ssl/privkey.pem -x509 -days 730 -out ./ssl/fullchain.pem \
+      -subj "/C=GB/ST=None/L=None/O=None/OU=IT Department/CN=localhost"
+
+  chown vscode:vscode ./ssl/fullchain.pem ./ssl/privkey.pem
+  chmod 600 ./ssl/fullchain.pem ./ssl/privkey.pem
+fi
+
 sudo apt -y update
 sudo apt -y dist-upgrade
 sudo apt -y install ffmpeg

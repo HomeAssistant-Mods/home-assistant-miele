@@ -8,6 +8,7 @@ __pycache__
 *.egg-info
 */build/*
 */dist/*
+**/ssl/*
 **/*.pyc
 *.iml
 .idea/
@@ -21,7 +22,6 @@ coverage.xml
 .cloud
 .HA_VERSION
 .storage
-*/ssl/*
 automations.yaml
 blueprints
 configuration.yaml
