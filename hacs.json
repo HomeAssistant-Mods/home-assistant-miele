@@ -1,3 +1,4 @@
 {
-  "name": "Miele integration"
+  "name": "Miele integration",
+  "homeassistant": "2023.12.4"
 }

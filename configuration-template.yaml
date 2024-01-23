@@ -1,6 +1,21 @@
 # https://www.home-assistant.io/integrations/default_config/
 default_config:
 
+# Added to allow get_url to work.
+homeassistant:
+  external_url: "https://localhost:8123"
+  internal_url: "https://localhost:8123"
+
+# Enable SSL, needed to auto reply to Miele Auth without error.
+http:
+  ssl_certificate: ./ssl/myhass.crt
+  ssl_key: ./ssl/myhass.key
+
+# Enable to initiate debugging in Home Assistant Runtime
+debugpy:
+  start: true
+  wait: false
+
 # https://www.home-assistant.io/integrations/logger/
 logger:
   default: warning
