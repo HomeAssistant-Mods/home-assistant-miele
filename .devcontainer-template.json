@@ -37,7 +37,8 @@
                     "*.yaml": "home-assistant"
                 },
                 "editor.tabSize": 4,
-                "python.pythonPath": "/usr/bin/python3",
+                "python.pythonPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "python.analysis.autoSearchPaths": false,
                 "python.testing.unittestEnabled": false,
                 "python.testing.pytestEnabled": true,

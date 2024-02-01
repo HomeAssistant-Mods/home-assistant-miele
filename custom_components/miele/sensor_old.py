@@ -1,25 +1,22 @@
-"""Support for the Miele Sensors."""
-from decimal import Decimal
-from datetime import date, datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
-from homeassistant.core import HomeAssistant
 from homeassistant.components.sensor import (
-    SensorEntity,
     SensorDeviceClass,
+    SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ENTITIES, UnitOfTemperature, Platform
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 
-from .__init__ import DATA_DEVICES
-from .const import DOMAIN as MIELE_DOMAIN, CAPABILITIES
-from .coordinator import MieleDataUpdateCoordinator
+from homeassistant.helpers.entity import Entity
+
+from custom_components.miele import CAPABILITIES, DATA_DEVICES
+from custom_components.miele import DOMAIN as MIELE_DOMAIN
+
+PLATFORMS = ["miele"]
 
 _LOGGER = logging.getLogger(__name__)
+
+ALL_DEVICES = []
 
 # https://www.miele.com/developer/swagger-ui/swagger.html#/
 STATUS_OFF = 1
@@ -76,8 +73,7 @@ def _map_key(key):
         return "Water cons. forecast"
 
 
-def state_capability(type, state) -> bool:
-    """Check the capabilities."""
+def state_capability(type, state):
     type_str = str(type)
     if state in CAPABILITIES[type_str]:
         return True
@@ -106,42 +102,125 @@ def _to_seconds(time_array):
         return 0
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-):
-    """Load Sensors from the config settings."""
-    coordinator: MieleDataUpdateCoordinator = hass.data[MIELE_DOMAIN][entry.entry_id]
+# pylint: disable=W0612
+def setup_platform(hass, config, add_devices, discovery_info=None):
+    global ALL_DEVICES
 
-    entities: list[SensorEntity] = []
-    devices = coordinator.data
-    for id, device in devices.items():
+    devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
+    for k, device in devices.items():
         device_state = device["state"]
         device_type = device["ident"]["type"]["value_raw"]
 
+        sensors = []
         if "status" in device_state and state_capability(
             type=device_type, state="status"
         ):
-            entities.append(MieleStatusSensor(hass, coordinator, device, "status"))
+            sensors.append(MieleStatusSensor(hass, device, "status"))
 
-    async_add_entities(entities, True)
-    # coordinator.remove_old_entities(Platform.SENSOR)
+        if "ProgramID" in device_state and state_capability(
+            type=device_type, state="ProgramID"
+        ):
+            sensors.append(MieleTextSensor(hass, device, "ProgramID"))
+
+        if "programPhase" in device_state and state_capability(
+            type=device_type, state="programPhase"
+        ):
+            sensors.append(MieleTextSensor(hass, device, "programPhase"))
+
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature"
+        ):
+            for i, val in enumerate(device_state["targetTemperature"]):
+                sensors.append(
+                    MieleTemperatureSensor(hass, device, "targetTemperature", i)
+                )
+
+        # washer, washer-dryer and dishwasher only have first target temperarure sensor
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature.0"
+        ):
+            sensors.append(
+                MieleTemperatureSensor(hass, device, "targetTemperature", 0, True)
+            )
+
+        if "temperature" in device_state and state_capability(
+            type=device_type, state="temperature"
+        ):
+            for i, val in enumerate(device_state["temperature"]):
+                sensors.append(MieleTemperatureSensor(hass, device, "temperature", i))
+
+        if "dryingStep" in device_state and state_capability(
+            type=device_type, state="dryingStep"
+        ):
+            sensors.append(MieleTextSensor(hass, device, "dryingStep"))
+
+        if "spinningSpeed" in device_state and state_capability(
+            type=device_type, state="spinningSpeed"
+        ):
+            sensors.append(MieleTextSensor(hass, device, "spinningSpeed"))
+
+        if "remainingTime" in device_state and state_capability(
+            type=device_type, state="remainingTime"
+        ):
+            sensors.append(MieleTimeSensor(hass, device, "remainingTime", True))
+        if "startTime" in device_state and state_capability(
+            type=device_type, state="startTime"
+        ):
+            sensors.append(MieleTimeSensor(hass, device, "startTime"))
+        if "elapsedTime" in device_state and state_capability(
+            type=device_type, state="elapsedTime"
+        ):
+            sensors.append(MieleTimeSensor(hass, device, "elapsedTime"))
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.energyConsumption"
+        ):
+            sensors.append(
+                MieleConsumptionSensor(
+                    hass, device, "energyConsumption", "kWh", SensorDeviceClass.ENERGY
+                )
+            )
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.waterConsumption"
+        ):
+            sensors.append(
+                MieleConsumptionForecastSensor(hass, device, "energyForecast")
+            )
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.waterConsumption"
+        ):
+            sensors.append(
+                MieleConsumptionSensor(hass, device, "waterConsumption", "L", None)
+            )
+            sensors.append(
+                MieleConsumptionForecastSensor(hass, device, "waterForecast")
+            )
+
+        if "batteryLevel" in device_state and state_capability(
+            type=device_type, state="batteryLevel"
+        ):
+            sensors.append(MieleBatterySensor(hass, device, "batteryLevel"))
+
+        add_devices(sensors)
+        ALL_DEVICES = ALL_DEVICES + sensors
+
+
+def update_device_state():
+    for device in ALL_DEVICES:
+        try:
+            device.async_schedule_update_ha_state(True)
+        except (AssertionError, AttributeError):
+            _LOGGER.debug(
+                "Component most likely is disabled manually, if not please report to developer"
+                "{}".format(device.entity_id)
+            )
 
 
 class MieleRawSensor(Entity):
-    """Miele Raw Sensor."""
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: MieleDataUpdateCoordinator,
-        device: str,
-        key: str,
-    ):
-        """Initialise Miele Raw Sensor."""
+    def __init__(self, hass, device, key):
         self._hass = hass
-        self._coordinator = coordinator
         self._device = device
         self._key = key
 
@@ -173,16 +252,15 @@ class MieleRawSensor(Entity):
         return self._device["state"][self._key]["value_raw"]
 
     async def async_update(self):
-        if self.device_id not in self._coordinator.data:
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
         else:
-            self._device = self._coordinator.data[self.device_id]
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
 
 class MieleSensorEntity(SensorEntity):
-    def __init__(self, hass, coordinator, device, key):
+    def __init__(self, hass, device, key):
         self._hass = hass
-        self._coordinator = coordinator
         self._device = device
         self._key = key
 
@@ -208,10 +286,10 @@ class MieleSensorEntity(SensorEntity):
             return result + " " + _map_key(self._key)
 
     async def async_update(self):
-        if self.device_id not in self._coordinator.data:
+        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
             _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
         else:
-            self._device = self._coordinator.data[self.device_id]
+            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
 
 
 class MieleStatusSensor(MieleRawSensor):
@@ -339,8 +417,8 @@ class MieleStatusSensor(MieleRawSensor):
 
 
 class MieleConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, coordinator, key, measurement, device_class):
-        super().__init__(hass, device, coordinator, key)
+    def __init__(self, hass, device, key, measurement, device_class):
+        super().__init__(hass, device, key)
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
