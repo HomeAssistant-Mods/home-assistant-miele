@@ -5,6 +5,7 @@ import voluptuous as vol
 from collections.abc import Mapping
 from typing import Any
 
+from homeassistant.components import dhcp, onboarding, ssdp, zeroconf
 from homeassistant.config_entries import (
     ConfigEntry,
     OptionsFlow,
@@ -28,6 +29,11 @@ class MieleOAuth2FlowHandler(
     CONNECTION_CLASS = CONN_CLASS_CLOUD_POLL
     DOMAIN = DOMAIN
 
+    def __init__(self) -> None:
+        """Set up instance."""
+        super().__init__()
+        self._reauth_entry: ConfigEntry | None = None
+
     @property
     def logger(self) -> logging.Logger:
         """Return logger."""
@@ -39,11 +45,12 @@ class MieleOAuth2FlowHandler(
         """Start a configuration flow based on imported data."""
         await self._async_handle_discovery_without_unique_id()
         self.async_oauth_create_entry
+
         return await self.async_step_user()
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Perform reauth upon an API authentication error."""
-        self.reauth_entry = self.hass.config_entries.async_get_entry(
+        self._reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
         return await self.async_step_reauth_confirm()
@@ -56,6 +63,16 @@ class MieleOAuth2FlowHandler(
             return self.async_show_form(step_id="reauth_confirm")
 
         return await self.async_step_user()
+
+    async def async_oauth_create_entry(self, data: dict) -> FlowResult:
+        """Create an entry for Miele."""
+        existing_entry = await self.async_set_unique_id(DOMAIN)
+        if existing_entry:
+            self.hass.config_entries.async_update_entry(existing_entry, data=data)
+            await self.hass.config_entries.async_reload(existing_entry.entry_id)
+            return self.async_abort(reason="reauth_successful")
+
+        return await super().async_oauth_create_entry(data)
 
     @staticmethod
     @callback

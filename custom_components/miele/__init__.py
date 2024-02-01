@@ -66,8 +66,7 @@ async def async_setup(hass: HomeAssistant, config: Config):
                 )
 
         # Raise the relevant issue to migrate or just remove the YAML entries.
-        # TODO: Issue creating multiple entries.
-        if DOMAIN not in hass.data:
+        if DOMAIN not in hass.config_entries.async_domains():
             async_create_issue(
                 hass,
                 DOMAIN,

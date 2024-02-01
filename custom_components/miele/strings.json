@@ -36,7 +36,7 @@
         "step": {
           "confirm": {
             "title": "Remove {integration_title} YAML Config",
-            "description": "Please remove the {integraiton_title} settings from configuration.yaml and restart home assistant."
+            "description": "Please remove the {integration_title} settings from configuration.yaml and restart home assistant."
           }
         }
       }
