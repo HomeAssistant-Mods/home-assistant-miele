@@ -2,8 +2,6 @@
 import logging
 
 from aiohttp.client_exceptions import ClientError, ClientResponseError
-from datetime import timedelta
-from importlib import import_module
 
 from homeassistant.components.application_credentials import (
     ClientCredential,
@@ -18,21 +16,17 @@ from homeassistant.const import (
     CONF_DEVICES,
 )
 from homeassistant.core import Config, HomeAssistant
-from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.config_entry_oauth2_flow import (
     OAuth2Session,
     async_get_implementations,
     async_get_config_entry_implementation,
 )
-from homeassistant.helpers.discovery import load_platform
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, ENTITIES
 from .coordinator import MieleDataUpdateCoordinator
-from .miele_at_home import MieleClient
 
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -131,67 +125,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, ENTITIES)
-    # entry.async_on_unload(entry.add_update_listener(async_reload_entry))
-
-    # scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-    # language = entry.options.get(CONF_LANGUAGE, hass.config.language)
-    # component = EntityComponent(_LOGGER, DOMAIN, hass)
-
-    # client = MieleClient(hass, session)
-    # data_get_devices = await client.get_devices(language)
-    # hass.data[DOMAIN][CONF_DEVICES] = _to_dict(data_get_devices)
-
-    # DEVICES.extend(
-    #    [
-    #        create_sensor(client, hass, home_device, language)
-    #        for k, home_device in hass.data[DOMAIN][CONF_DEVICES].items()
-    #    ]
-    # )
-    # await component.async_add_entities(DEVICES, False)
-
-    # for component in MIELE_COMPONENTS:
-    #    load_platform(hass, component, DOMAIN, {}, hass.config.as_dict())
-
-    # async def refresh_devices(event_time):
-    #    _LOGGER.debug("Attempting to update Miele devices")
-    #    try:
-    #        device_state = await client.get_devices(language)
-    #    except:
-    #        device_state = None
-    #    if device_state is None:
-    #        _LOGGER.error("Did not receive Miele devices")
-    #    else:
-    #        hass.data[DOMAIN][CONF_DEVICES] = _to_dict(device_state)
-    #        for device in DEVICES:
-    #            device.async_schedule_update_ha_state(True)
-
-    #        for component in MIELE_COMPONENTS:
-    #            platform = import_module(f".{component}", __name__)
-    #            platform.update_device_state()
-
-    # register_services(hass)
-    # interval = timedelta(seconds=scan_interval)
-
-    # async_track_time_interval(hass, refresh_devices, interval)
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
 
-def register_services(hass):
-    """Register all services for Miele devices."""
-    hass.services.async_register(DOMAIN, SERVICE_ACTION, _action_service)
-    hass.services.async_register(DOMAIN, SERVICE_START_PROGRAM, _action_start_program)
-    hass.services.async_register(DOMAIN, SERVICE_STOP_PROGRAM, _action_stop_program)
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, ENTITIES):
+        hass.data[DOMAIN].pop(entry.entry_id)
+
+    return unload_ok
 
 
-def _to_dict(items: list) -> dict:
-    """Replace with Dict."""
-    result = {}
-    for item in items:
-        ident = item["ident"]
-        result[ident["deviceIdentLabel"]["fabNumber"]] = item
-
-    return result
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)
 
 
 class MieleDevice(Entity):
@@ -262,42 +212,3 @@ class MieleDevice(Entity):
             _LOGGER.debug("Miele device not found: {}".format(self.unique_id))
         else:
             self._home_device = self._hass.data[DOMAIN][CONF_DEVICES][self.unique_id]
-
-
-def create_sensor(client, hass, home_device, lang: str) -> MieleDevice:
-    """Create a Sensor."""
-    return MieleDevice(hass, client, home_device, lang)
-
-
-async def _apply_service(service, service_func, *service_func_args):
-    entity_ids = service.data.get("entity_id")
-
-    _devices = []
-    if entity_ids:
-        _devices.extend(
-            [device for device in DEVICES if device.entity_id in entity_ids]
-        )
-
-    device_ids = service.data.get("device_id")
-    if device_ids:
-        _devices.extend(
-            [device for device in DEVICES if device.unique_id in device_ids]
-        )
-
-    for device in _devices:
-        await service_func(device, *service_func_args)
-
-
-async def _action_service(service):
-    body = service.data.get("body")
-    await _apply_service(service, MieleDevice.action, body)
-
-
-async def _action_start_program(service):
-    program_id = service.data.get("program_id")
-    await _apply_service(service, MieleDevice.start_program, program_id)
-
-
-async def _action_stop_program(service):
-    body = {"processAction": 2}
-    await _apply_service(service, MieleDevice.action, body)
