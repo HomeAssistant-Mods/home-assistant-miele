@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
+RED='\033[0;41m'
+NORMAL=$(tput sgr0)
 
 set -e
 
 cd "$(dirname "$0")/.."
 
 if [ ${BUILD_TYPE} == "run" ]; then
-    # Start Home Assistant
+    echo -e "${RED}Start-up first time can take ages as downloading modules during setup.${NORMAL}"
+    echo
     hass -c . --debug
 else
-    echo "Docker Mode: Build Type is not 'run', can't start hass. Build Type is ${BUILD_TYPE}."
+    echo -e "${RED}Docker Mode: Build Type is not 'run', can't start hass. Build Type is ${BUILD_TYPE}.${NORMAL}"
 fi
 

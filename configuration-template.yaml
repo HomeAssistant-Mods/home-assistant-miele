@@ -14,7 +14,7 @@ http:
 
 # Enable to initiate debugging in Home Assistant Runtime
 debugpy:
-  start: true
+  start: false
   wait: false
 
 # https://www.home-assistant.io/integrations/logger/
