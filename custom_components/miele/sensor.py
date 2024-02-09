@@ -1,21 +1,18 @@
 """Support for the Miele Sensors."""
-from decimal import Decimal
-from datetime import date, datetime, timedelta
+
 import logging
+from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.components.sensor import (
-    SensorEntity,
     SensorDeviceClass,
+    SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ENTITIES, UnitOfTemperature, Platform
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 
-from .__init__ import DATA_DEVICES
 from .const import DOMAIN as MIELE_DOMAIN, CAPABILITIES
 from .coordinator import MieleDataUpdateCoordinator
 
@@ -116,14 +113,117 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = []
     devices = coordinator.data
-    for id, device in devices.items():
+    for _, device in devices.items():
         device_state = device["state"]
         device_type = device["ident"]["type"]["value_raw"]
 
         if "status" in device_state and state_capability(
             type=device_type, state="status"
         ):
-            entities.append(MieleStatusSensor(hass, coordinator, device, "status"))
+            entities.append(MieleStatusSensor(coordinator, device, "status"))
+
+        if "ProgramID" in device_state and state_capability(
+            type=device_type, state="ProgramID"
+        ):
+            entities.append(MieleTextSensor(coordinator, device, "ProgramID"))
+
+        if "programPhase" in device_state and state_capability(
+            type=device_type, state="programPhase"
+        ):
+            entities.append(MieleTextSensor(coordinator, device, "programPhase"))
+
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature"
+        ):
+            for i, _ in enumerate(device_state["targetTemperature"]):
+                entities.append(
+                    MieleTemperatureSensor(
+                        hass, coordinator, device, "targetTemperature", i
+                    )
+                )
+
+        # washer, washer-dryer and dishwasher only have first target temperarure sensor
+        if "targetTemperature" in device_state and state_capability(
+            type=device_type, state="targetTemperature.0"
+        ):
+            entities.append(
+                MieleTemperatureSensor(
+                    hass, coordinator, device, "targetTemperature", 0, True
+                )
+            )
+
+        if "temperature" in device_state and state_capability(
+            type=device_type, state="temperature"
+        ):
+            for i, _ in enumerate(device_state["temperature"]):
+                entities.append(
+                    MieleTemperatureSensor(coordinator, device, "temperature", i)
+                )
+
+        if "dryingStep" in device_state and state_capability(
+            type=device_type, state="dryingStep"
+        ):
+            entities.append(MieleTextSensor(coordinator, device, "dryingStep"))
+
+        if "spinningSpeed" in device_state and state_capability(
+            type=device_type, state="spinningSpeed"
+        ):
+            entities.append(MieleTextSensor(coordinator, device, "spinningSpeed"))
+
+        if "remainingTime" in device_state and state_capability(
+            type=device_type, state="remainingTime"
+        ):
+            entities.append(MieleTimeSensor(coordinator, device, "remainingTime", True))
+        if "startTime" in device_state and state_capability(
+            type=device_type, state="startTime"
+        ):
+            entities.append(MieleTimeSensor(coordinator, device, "startTime"))
+        if "elapsedTime" in device_state and state_capability(
+            type=device_type, state="elapsedTime"
+        ):
+            entities.append(MieleTimeSensor(coordinator, device, "elapsedTime"))
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.energyConsumption"
+        ):
+            entities.append(
+                MieleConsumptionSensor(
+                    hass,
+                    coordinator,
+                    device,
+                    "energyConsumption",
+                    "kWh",
+                    SensorDeviceClass.ENERGY,
+                )
+            )
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.waterConsumption"
+        ):
+            entities.append(
+                MieleConsumptionForecastSensor(
+                    hass, coordinator, device, "energyForecast"
+                )
+            )
+
+        if "ecoFeedback" in device_state and state_capability(
+            type=device_type, state="ecoFeedback.waterConsumption"
+        ):
+            entities.append(
+                MieleConsumptionSensor(
+                    hass, coordinator, device, "waterConsumption", "L", None
+                )
+            )
+            entities.append(
+                MieleConsumptionForecastSensor(
+                    hass, coordinator, device, "waterForecast"
+                )
+            )
+
+        if "batteryLevel" in device_state and state_capability(
+            type=device_type, state="batteryLevel"
+        ):
+            entities.append(MieleBatterySensor(coordinator, device, "batteryLevel"))
 
     async_add_entities(entities, True)
     # coordinator.remove_old_entities(Platform.SENSOR)
@@ -134,13 +234,11 @@ class MieleRawSensor(Entity):
 
     def __init__(
         self,
-        hass: HomeAssistant,
         coordinator: MieleDataUpdateCoordinator,
         device: str,
         key: str,
     ):
         """Initialise Miele Raw Sensor."""
-        self._hass = hass
         self._coordinator = coordinator
         self._device = device
         self._key = key
@@ -173,15 +271,18 @@ class MieleRawSensor(Entity):
         return self._device["state"][self._key]["value_raw"]
 
     async def async_update(self):
+        """Update the Device Data Internally."""
         if self.device_id not in self._coordinator.data:
-            _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
+            _LOGGER.debug(f"Miele device disappeared: {self.device_id}")
         else:
             self._device = self._coordinator.data[self.device_id]
 
 
 class MieleSensorEntity(SensorEntity):
-    def __init__(self, hass, coordinator, device, key):
-        self._hass = hass
+    """Miele Standard Sensor Entity."""
+
+    def __init__(self, coordinator, device, key):
+        """Initialize the Class."""
         self._coordinator = coordinator
         self._device = device
         self._key = key
@@ -208,18 +309,21 @@ class MieleSensorEntity(SensorEntity):
             return result + " " + _map_key(self._key)
 
     async def async_update(self):
+        """Perform Updates."""
         if self.device_id not in self._coordinator.data:
-            _LOGGER.debug("Miele device disappeared: {}".format(self.device_id))
+            _LOGGER.debug(f"Miele device disappeared: {self.device_id}")
         else:
             self._device = self._coordinator.data[self.device_id]
 
 
 class MieleStatusSensor(MieleRawSensor):
+    """Miele Status Sensor Entity."""
+
     @property
     def state(self):
         """Return the state of the sensor."""
         result = self._device["state"]["status"]["value_localized"]
-        if result == None:
+        if result is None:
             result = self._device["state"]["status"]["value_raw"]
 
         return result
@@ -339,8 +443,11 @@ class MieleStatusSensor(MieleRawSensor):
 
 
 class MieleConsumptionSensor(MieleSensorEntity):
-    def __init__(self, hass, device, coordinator, key, measurement, device_class):
-        super().__init__(hass, device, coordinator, key)
+    """Consumption Sensor."""
+
+    def __init__(self, device, coordinator, key, measurement, device_class):
+        """Initialize the Class."""
+        super().__init__(device, coordinator, key)
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
@@ -402,8 +509,11 @@ class MieleConsumptionSensor(MieleSensorEntity):
 
 
 class MieleTimeSensor(MieleRawSensor):
-    def __init__(self, hass, device, key, decreasing=False):
-        super().__init__(hass, device, key)
+    """Time Sensor for Running Times."""
+
+    def __init__(self, coordinator, device, key, decreasing=False):
+        """Initialize the Class."""
+        super().__init__(coordinator, device, key)
         self._init_value = "--:--"
         self._cached_time = self._init_value
         self._decreasing = decreasing
@@ -415,7 +525,7 @@ class MieleTimeSensor(MieleRawSensor):
         device_status_value = self._device["state"]["status"]["value_raw"]
         formatted_value = None
         if len(state_value) == 2:
-            formatted_value = "{:02d}:{:02d}".format(state_value[0], state_value[1])
+            formatted_value = f"{state_value[0]:02d}:{state_value[1]:02d}"
 
         if (
             not _is_running(device_status_value)
@@ -442,8 +552,11 @@ class MieleTimeSensor(MieleRawSensor):
 
 
 class MieleTemperatureSensor(Entity):
-    def __init__(self, hass, device, key, index, force_int=False):
-        self._hass = hass
+    """Temperature Sensor."""
+
+    def __init__(self, coordinator, device, key, index, force_int=False):
+        """Initialize the Class."""
+        self._coordinator = coordinator
         self._device = device
         self._key = key
         self._index = index
@@ -457,7 +570,7 @@ class MieleTemperatureSensor(Entity):
     @property
     def unique_id(self):
         """Return the unique ID for this sensor."""
-        return self.device_id + "_" + self._key + "_{}".format(self._index)
+        return f"{self.device_id}_{self._key}_{self._index}"
 
     @property
     def name(self):
@@ -466,11 +579,9 @@ class MieleTemperatureSensor(Entity):
 
         result = ident["deviceName"]
         if len(result) == 0:
-            return "{} {} {}".format(
-                ident["type"]["value_localized"], _map_key(self._key), self._index
-            )
+            return f"{ident["type"]["value_localized"]} {_map_key(self._key)} {self._index}"
         else:
-            return "{} {} {}".format(result, _map_key(self._key), self._index)
+            return f"{result} {_map_key(self._key)} {self._index}"
 
     @property
     def state(self):
@@ -493,16 +604,20 @@ class MieleTemperatureSensor(Entity):
 
     @property
     def device_class(self):
+        """Return the Class of the Sensor."""
         return "temperature"
 
     async def async_update(self):
-        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
-            _LOGGER.debug(" Miele device disappeared: {}".format(self.device_id))
+        """Update Sensor Data."""
+        if self.device_id not in self._coordinator.data:
+            _LOGGER.debug(f" Miele device disappeared: {self.device_id}")
         else:
-            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]
+            self._device = self._coordinator.data[self.device_id]
 
 
 class MieleTextSensor(MieleRawSensor):
+    """General Text Sensor."""
+
     @property
     def state(self):
         """Return the state of the sensor."""
@@ -514,20 +629,27 @@ class MieleTextSensor(MieleRawSensor):
 
 
 class MieleBatterySensor(MieleSensorEntity):
-    def __init__(self, hass, device, key):
-        super().__init__(hass, device, key)
+    """Sensor for Batteries."""
+
+    def __init__(self, device, key):
+        """Initialize the Class."""
+        super().__init__(device, key)
         self._attr_device_class = SensorDeviceClass.BATTERY
         self._attr_native_unit_of_measurement = "%"
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def state(self):
+        """Return Sensor State."""
         return self._device["state"][self._key]
 
 
 class MieleConsumptionForecastSensor(MieleSensorEntity):
-    def __init__(self, hass, device, key):
-        super().__init__(hass, device, key)
+    """Forecast Consumption Sensor."""
+
+    def __init__(self, coordinator, device, key):
+        """Initizlise Class."""
+        super().__init__(coordinator, device, key)
         self._attr_native_unit_of_measurement = "%"
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
