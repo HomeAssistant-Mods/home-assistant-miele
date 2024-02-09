@@ -1,11 +1,12 @@
 """Config flow for Miele@home."""
+
 import logging
 import voluptuous as vol
 
 from collections.abc import Mapping
 from typing import Any
 
-from homeassistant.components import dhcp, onboarding, ssdp, zeroconf
+from homeassistant.components import dhcp
 from homeassistant.config_entries import (
     ConfigEntry,
     OptionsFlow,
@@ -39,6 +40,10 @@ class MieleOAuth2FlowHandler(
         """Return logger."""
         return logging.getLogger(__name__)
 
+    async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
+        """DHCP Discovery."""
+        return await super().async_step_dhcp(discovery_info)
+
     async def async_step_import(
         self, config: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -67,12 +72,25 @@ class MieleOAuth2FlowHandler(
     async def async_oauth_create_entry(self, data: dict) -> FlowResult:
         """Create an entry for Miele."""
         existing_entry = await self.async_set_unique_id(DOMAIN)
+
         if existing_entry:
             self.hass.config_entries.async_update_entry(existing_entry, data=data)
             await self.hass.config_entries.async_reload(existing_entry.entry_id)
             return self.async_abort(reason="reauth_successful")
 
-        return await super().async_oauth_create_entry(data)
+        entry: FlowResult = await super().async_oauth_create_entry(data)
+
+        # Set Initial Options from yaml if available, for migration.
+        init_data: dict = self.init_data
+        if init_data:
+            entry["options"][CONF_LANGUAGE] = init_data.get(
+                "lang", self.hass.config.language
+            )
+            entry["options"][CONF_SCAN_INTERVAL] = self.init_data.get(
+                "interval", DEFAULT_SCAN_INTERVAL
+            )
+
+        return entry
 
     @staticmethod
     @callback

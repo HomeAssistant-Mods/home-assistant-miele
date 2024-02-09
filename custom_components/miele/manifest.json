@@ -9,6 +9,12 @@
   "requirements": [
     "requests_oauthlib>=1.3.0"
   ],
+  "dhcp": [
+    {
+    "hostname": "miele-*",
+    "macaddress": "001D63*"
+    }
+  ],
   "dependencies": [
     "http","configurator","application_credentials"
   ],

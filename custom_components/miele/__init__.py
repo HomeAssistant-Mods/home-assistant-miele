@@ -1,4 +1,5 @@
 """Miele@home Device Support."""
+
 import logging
 
 from aiohttp.client_exceptions import ClientError, ClientResponseError
@@ -45,6 +46,8 @@ SERVICE_STOP_PROGRAM = "stop_program"
 async def async_setup(hass: HomeAssistant, config: Config):
     """Initiate the Migraiton of the YAML setup to User Interface."""
     if conf := config.get(DOMAIN):
+        # TODO: Delete cache-path
+
         # Import the Client Credentials, if not imported.
         implementation = await async_get_implementations(hass, DOMAIN)
         if not implementation:
@@ -77,7 +80,9 @@ async def async_setup(hass: HomeAssistant, config: Config):
             # Initiate the Migraiton Import.
             hass.async_create_task(
                 hass.config_entries.flow.async_init(
-                    DOMAIN, context={"source": SOURCE_IMPORT}
+                    DOMAIN,
+                    context={"source": SOURCE_IMPORT},
+                    data=conf,
                 )
             )
         else:
@@ -176,7 +181,7 @@ class MieleDevice(Entity):
         """Return the state of the sensor."""
 
         result = self._home_device["state"]["status"]["value_localized"]
-        if result == None:
+        if result is None:
             result = self._home_device["state"]["status"]["value_raw"]
 
         return result
