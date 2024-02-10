@@ -362,7 +362,7 @@ class MieleStatusSensor(MieleEntity):
 class MieleConsumptionSensor(MieleEntity, SensorEntity):
     """Consumption Sensor."""
 
-    def __init__(self, device, coordinator, key, measurement, device_class):
+    def __init__(self, coordinator, device, key, measurement, device_class):
         """Initialize the Class."""
         super().__init__(coordinator, device, key, _map_key(key))
 
@@ -475,37 +475,14 @@ class MieleTimeSensor(MieleEntity):
         return formatted_value
 
 
-class MieleTemperatureSensor(Entity):
+class MieleTemperatureSensor(MieleEntity):
     """Temperature Sensor."""
 
     def __init__(self, coordinator, device, key, index, force_int=False):
         """Initialize the Class."""
-        self._coordinator = coordinator
-        self._device = device
-        self._key = key
+        super().__init__(coordinator, device, key, f"{_map_key(key)} {index}")
         self._index = index
         self._force_int = force_int
-
-    @property
-    def device_id(self):
-        """Return the unique ID for this sensor."""
-        return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
-
-    @property
-    def unique_id(self):
-        """Return the unique ID for this sensor."""
-        return f"{self.device_id}_{self._key}_{self._index}"
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        ident = self._device["ident"]
-
-        result = ident["deviceName"]
-        if len(result) == 0:
-            return f"{ident['type']['value_localized']} {_map_key(self._key)} {self._index}"
-        else:
-            return f"{result} {_map_key(self._key)} {self._index}"
 
     @property
     def state(self):
@@ -530,13 +507,6 @@ class MieleTemperatureSensor(Entity):
     def device_class(self):
         """Return the Class of the Sensor."""
         return "temperature"
-
-    async def async_update(self):
-        """Update Sensor Data."""
-        if self.device_id not in self._coordinator.data:
-            _LOGGER.debug(f" Miele device disappeared: {self.device_id}")
-        else:
-            self._device = self._coordinator.data[self.device_id]
 
 
 class MieleTextSensor(MieleEntity):
