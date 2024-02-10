@@ -3,9 +3,7 @@
 import logging
 
 from homeassistant.core import HomeAssistant
-from homeassistant.components.binary_sensor import (
-    BinarySensorEntity,
-)
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -24,7 +22,7 @@ def _map_key(key):
     elif key == "signalDoor":
         return "Door"
     elif key == "mobileStart":
-        return "MobileStart"
+        return "Mobile Start"
 
 
 def state_capability(type, state) -> bool:

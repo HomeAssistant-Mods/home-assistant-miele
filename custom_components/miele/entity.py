@@ -19,7 +19,7 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
         coordinator: MieleDataUpdateCoordinator,
         device: dict[str, any],
         key: str,
-        key_name: str,
+        key_name: str | None = None,
     ):
         """Initialize class properties."""
         super().__init__(coordinator)
@@ -30,11 +30,14 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
         self.unique_id = f"{self.device_id}_{self._key}"
 
         ident = self._device["ident"]
-        result = ident["deviceName"]
-        if len(result) == 0:
-            self.name = f"{ident['type']['value_localized']} {key_name}"
+        name = ident["deviceName"]
+        if len(name) == 0:
+            name = f"{ident['type']['value_localized']}"
+
+        if key_name:
+            self.name = f"{name} {key_name}"
         else:
-            self.name = f"{result} {key_name}"
+            self.name = name
 
     @property
     def device_info(self) -> DeviceInfo:
