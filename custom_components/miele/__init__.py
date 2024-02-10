@@ -14,7 +14,6 @@ from homeassistant.const import (
     CONF_CLIENT_SECRET,
     CONF_SCAN_INTERVAL,
     CONF_LANGUAGE,
-    CONF_DEVICES,
 )
 from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -23,7 +22,6 @@ from homeassistant.helpers.config_entry_oauth2_flow import (
     async_get_implementations,
     async_get_config_entry_implementation,
 )
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, ENTITIES
@@ -147,73 +145,3 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload config entry."""
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)
-
-
-class MieleDevice(Entity):
-    """A Miele Device Entity."""
-
-    def __init__(self, hass, client, home_device, lang):
-        """Initialize the entity."""
-        self._hass = hass
-        self._client = client
-        self._home_device = home_device
-        self._lang = lang
-
-    @property
-    def unique_id(self):
-        """Return the unique ID for this sensor."""
-        return self._home_device["ident"]["deviceIdentLabel"]["fabNumber"]
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-
-        ident = self._home_device["ident"]
-
-        result = ident["deviceName"]
-        if len(result) == 0:
-            result = ident["type"]["value_localized"]
-
-        return result
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-
-        result = self._home_device["state"]["status"]["value_localized"]
-        if result is None:
-            result = self._home_device["state"]["status"]["value_raw"]
-
-        return result
-
-    @property
-    def extra_state_attributes(self):
-        """Attributes."""
-
-        result = {}
-        result["state_raw"] = self._home_device["state"]["status"]["value_raw"]
-
-        result["model"] = self._home_device["ident"]["deviceIdentLabel"]["techType"]
-        result["device_type"] = self._home_device["ident"]["type"]["value_localized"]
-        result["fabrication_number"] = self._home_device["ident"]["deviceIdentLabel"][
-            "fabNumber"
-        ]
-
-        result["gateway_type"] = self._home_device["ident"]["xkmIdentLabel"]["techType"]
-        result["gateway_version"] = self._home_device["ident"]["xkmIdentLabel"][
-            "releaseVersion"
-        ]
-
-        return result
-
-    async def action(self, action):
-        await self._client.action(self.unique_id, action)
-
-    async def start_program(self, program_id):
-        await self._client.start_program(self.unique_id, program_id)
-
-    async def async_update(self):
-        if not self.unique_id in self._hass.data[DOMAIN][CONF_DEVICES]:
-            _LOGGER.debug("Miele device not found: {}".format(self.unique_id))
-        else:
-            self._home_device = self._hass.data[DOMAIN][CONF_DEVICES][self.unique_id]
