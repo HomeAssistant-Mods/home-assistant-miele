@@ -37,7 +37,7 @@ class MieleDataUpdateCoordinator(DataUpdateCoordinator):
 
         self._language = language
         self._session = session
-        self._client = MieleClient(hass, session)
+        self.client = MieleClient(hass, session)
 
     def _to_dict(self, items: list) -> dict:
         """Replace with Dict."""
@@ -50,7 +50,7 @@ class MieleDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict:
         """Refresh the data from the API endpoint and process."""
-        device_state = await self._client.get_devices(self._language)
+        device_state = await self.client.get_devices(self._language)
         device_data = {}
 
         if device_state is None:
@@ -58,12 +58,5 @@ class MieleDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed("Did not receive Miele devices.")
         else:
             device_data = self._to_dict(device_state)
-
-            # for device in DEVICES:
-            #    device.async_schedule_update_ha_state(True)
-
-            # for component in MIELE_COMPONENTS:
-            #    platform = import_module(".{}".format(component), __name__)
-            #    platform.update_device_state()
 
         return device_data

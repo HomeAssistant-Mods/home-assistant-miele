@@ -7,20 +7,13 @@ from homeassistant.components.light import LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, CAPABILITIES
+from .const import DOMAIN
 from .coordinator import MieleDataUpdateCoordinator
 from .entity import MieleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 SUPPORTED_TYPES = [17, 18, 32, 33, 34, 68]
-
-
-def state_capability(type, state) -> bool:
-    """Check the capabilities."""
-    type_str = str(type)
-    if state in CAPABILITIES[type_str]:
-        return True
 
 
 async def async_setup_entry(
@@ -51,7 +44,7 @@ class MieleLight(MieleEntity, LightEntity):
         self._hass = coordinator.hass
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return the state of the light."""
         return self._device["state"]["light"] == 1
 

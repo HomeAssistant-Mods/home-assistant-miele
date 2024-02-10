@@ -1,4 +1,6 @@
-"""Miele@home API."""
+"""Miele@home Client API."""
+
+import json
 import logging
 
 from homeassistant.core import HomeAssistant
@@ -29,7 +31,7 @@ class MieleClient:
             )
 
             if devices.status != 200:
-                _LOGGER.debug("Failed to retrieve devices: %s", devices.status_code)
+                _LOGGER.debug("Failed to retrieve devices: %s", devices.status)
                 return None
 
             return await devices.json()
@@ -48,3 +50,65 @@ class MieleClient:
             result.append(home_devices[home_device])
 
         return result
+
+    async def action(self, device_id, body):
+        """Perform an Action on the Miele Device."""
+        _LOGGER.debug(f"Executing device action for {device_id}{body}")
+        try:
+            headers = {"Content-Type": "application/json"}
+            result = await self._session.async_request(
+                "put",
+                self.ACTION_URL.format(device_id),
+                data=json.dumps(body),
+                headers=headers,
+            )
+
+            if result.status != 200:
+                match result.status:
+                    case 401:
+                        _LOGGER.info("Request unauthorized, re-auth required.")
+                    case _:
+                        _LOGGER.error(
+                            "Failed to execute device action for %s: %s %s",
+                            device_id,
+                            result.status,
+                            result.json(),
+                        )
+
+                return None
+
+            return result.json()
+        except ConnectionError as err:
+            _LOGGER.error(f"Failed to execute device action: {err}")
+            return None
+
+    async def start_program(self, device_id, program_id):
+        """Start a Program."""
+        _LOGGER.debug(f"Starting program {program_id} for {device_id}")
+        try:
+            headers = {"Content-Type": "application/json"}
+            result = await self._session.async_request(
+                "put",
+                self.PROGRAMS_URL.format(device_id),
+                data=json.dumps({"programId": program_id}),
+                headers=headers,
+            )
+
+            if result.status != 200:
+                match result.status:
+                    case 401:
+                        _LOGGER.info("Request unauthorized, re-auth required.")
+                    case _:
+                        _LOGGER.error(
+                            "Failed to execute device action for %s: %s %s",
+                            device_id,
+                            result.status,
+                            result.json(),
+                        )
+
+                return None
+
+            return result.json()
+        except ConnectionError as err:
+            _LOGGER.error(f"Failed to execute start program: {err}")
+            return None
