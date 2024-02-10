@@ -1,7 +1,9 @@
 """Miele Constants."""
+
 from homeassistant.const import Platform
 
 DOMAIN = "miele"
+VERSION = "v2021.10.12"
 
 DEFAULT_SCAN_INTERVAL = 5
 

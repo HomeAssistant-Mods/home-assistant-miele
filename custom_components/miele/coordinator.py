@@ -1,8 +1,8 @@
 """Helper and wrapper classes for Miele@home module."""
-import logging
-import time
 
-from datetime import timedelta, datetime
+import logging
+
+from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
