@@ -2,9 +2,10 @@
 
 import logging
 
-from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, CAPABILITIES
@@ -68,6 +69,7 @@ async def async_setup_entry(
                 )
 
     async_add_entities(entities, True)
+    coordinator.remove_old_entities(Platform.SENSOR)
 
 
 class MieleBinarySensor(MieleEntity, BinarySensorEntity):
@@ -83,6 +85,7 @@ class MieleBinarySensor(MieleEntity, BinarySensorEntity):
         self._keys = dot_key.split(".")
         super().__init__(
             coordinator,
+            "binary_sensor",
             device,
             self._keys[-1],
             _map_key(self._keys[-1]),
@@ -91,7 +94,7 @@ class MieleBinarySensor(MieleEntity, BinarySensorEntity):
     @property
     def is_on(self):
         """Return the state of the sensor."""
-        current_val = self._device["state"]
+        current_val = self.device["state"]
         for k in self._keys:
             current_val = current_val[k]
         return bool(current_val)

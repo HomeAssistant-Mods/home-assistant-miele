@@ -123,6 +123,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session,
         entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         entry.options.get(CONF_LANGUAGE, hass.config.language),
+        entry.entry_id,
     )
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await coordinator.async_config_entry_first_refresh()

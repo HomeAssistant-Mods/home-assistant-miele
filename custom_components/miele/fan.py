@@ -5,9 +5,10 @@ import math
 
 from typing import Optional
 
-from homeassistant.core import HomeAssistant
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import (
     int_states_in_range,
@@ -21,7 +22,7 @@ from .entity import MieleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-SUPPORTED_TYPES = [18]
+SUPPORTED_TYPES = [1, 2, 18]
 SPEED_RANGE = (1, 4)
 
 
@@ -42,6 +43,7 @@ async def async_setup_entry(
             entities.append(MieleFan(coordinator, device))
 
     async_add_entities(entities, True)
+    coordinator.remove_old_entities(Platform.SENSOR)
 
 
 class MieleFan(MieleEntity, FanEntity):
@@ -49,13 +51,13 @@ class MieleFan(MieleEntity, FanEntity):
 
     def __init__(self, coordinator: MieleDataUpdateCoordinator, device: dict[str, any]):
         """Initialize Entity."""
-        super().__init__(coordinator, device, "fan")
+        super().__init__(coordinator, "fan", device, "fan")
         self._current_speed = 0
 
     @property
     def is_on(self):
         """Return the state of the fan."""
-        value_raw = self._device["state"]["ventilationStep"]["value_raw"]
+        value_raw = self.device["state"]["ventilationStep"]["value_raw"]
         return value_raw is not None and value_raw != 0
 
     @property
@@ -66,7 +68,7 @@ class MieleFan(MieleEntity, FanEntity):
     @property
     def speed(self):
         """Return the current speed."""
-        return self._device["state"]["ventilationStep"]["value_raw"]
+        return self.device["state"]["ventilationStep"]["value_raw"]
 
     @property
     def percentage(self) -> Optional[int]:

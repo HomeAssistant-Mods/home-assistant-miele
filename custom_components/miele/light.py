@@ -2,9 +2,10 @@
 
 import logging
 
-from homeassistant.core import HomeAssistant
 from homeassistant.components.light import LightEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -33,6 +34,7 @@ async def async_setup_entry(
             entities.append(MieleLight(coordinator, device))
 
     async_add_entities(entities, True)
+    coordinator.remove_old_entities(Platform.SENSOR)
 
 
 class MieleLight(MieleEntity, LightEntity):
@@ -40,13 +42,13 @@ class MieleLight(MieleEntity, LightEntity):
 
     def __init__(self, coordinator: MieleDataUpdateCoordinator, device: dict[str, any]):
         """Initialize Light Entity."""
-        super().__init__(coordinator, device, "light")
+        super().__init__(coordinator, "light", device, "light")
         self._hass = coordinator.hass
 
     @property
     def is_on(self) -> bool:
         """Return the state of the light."""
-        return self._device["state"]["light"] == 1
+        return self.device["state"]["light"] == 1
 
     def turn_on(self, **kwargs):
         """Call Service to turn on the Light."""

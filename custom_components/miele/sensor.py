@@ -3,13 +3,14 @@
 import logging
 from datetime import datetime, timedelta
 
-from homeassistant.core import HomeAssistant
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, CAPABILITIES
@@ -219,7 +220,7 @@ async def async_setup_entry(
             entities.append(MieleBatterySensor(coordinator, device, "batteryLevel"))
 
     async_add_entities(entities, True)
-    # coordinator.remove_old_entities(Platform.SENSOR)
+    coordinator.remove_old_entities(Platform.SENSOR)
 
 
 class MieleStatusSensor(MieleEntity):
@@ -233,21 +234,21 @@ class MieleStatusSensor(MieleEntity):
     ):
         """Initialise Miele Raw Sensor."""
         self._key = key
-        super().__init__(coordinator, device, key, _map_key(key))
+        super().__init__(coordinator, Platform.SENSOR, device, key, _map_key(key))
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        result = self._device["state"]["status"]["value_localized"]
+        result = self.device["state"]["status"]["value_localized"]
         if result is None:
-            result = self._device["state"]["status"]["value_raw"]
+            result = self.device["state"]["status"]["value_raw"]
 
         return result
 
     @property
     def extra_state_attributes(self):
         """Attributes."""
-        device_state = self._device["state"]
+        device_state = self.device["state"]
 
         attributes = {}
         if "ProgramID" in device_state:
@@ -363,7 +364,7 @@ class MieleConsumptionSensor(MieleEntity, SensorEntity):
 
     def __init__(self, coordinator, device, key, measurement, device_class):
         """Initialize the Class."""
-        super().__init__(coordinator, device, key, _map_key(key))
+        super().__init__(coordinator, Platform.SENSOR, device, key, _map_key(key))
 
         self._attr_native_unit_of_measurement = measurement
         self._cached_consumption = -1
@@ -373,8 +374,8 @@ class MieleConsumptionSensor(MieleEntity, SensorEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        device_state = self._device["state"]
-        device_status_value = self._device["state"]["status"]["value_raw"]
+        device_state = self.device["state"]
+        device_status_value = self.device["state"]["status"]["value_raw"]
 
         if (
             not _is_running(device_status_value)
@@ -435,7 +436,7 @@ class MieleTimeSensor(MieleEntity):
         decreasing=False,
     ):
         """Initialise Miele Raw Sensor."""
-        super().__init__(coordinator, device, key, _map_key(key))
+        super().__init__(coordinator, Platform.SENSOR, device, key, _map_key(key))
         self._key = key
         self._init_value = "--:--"
         self._cached_time = self._init_value
@@ -444,8 +445,8 @@ class MieleTimeSensor(MieleEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        state_value = self._device["state"][self._key]
-        device_status_value = self._device["state"]["status"]["value_raw"]
+        state_value = self.device["state"][self._key]
+        device_status_value = self.device["state"]["status"]["value_raw"]
         formatted_value = None
         if len(state_value) == 2:
             formatted_value = f"{state_value[0]:02d}:{state_value[1]:02d}"
@@ -479,14 +480,16 @@ class MieleTemperatureSensor(MieleEntity):
 
     def __init__(self, coordinator, device, key, index, force_int=False):
         """Initialize the Class."""
-        super().__init__(coordinator, device, key, f"{_map_key(key)} {index}")
+        super().__init__(
+            coordinator, Platform.SENSOR, device, key, f"{_map_key(key)} {index}"
+        )
         self._index = index
         self._force_int = force_int
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        state_value = self._device["state"][self._key][self._index]["value_raw"]
+        state_value = self.device["state"][self._key][self._index]["value_raw"]
         if state_value == -32768:
             return None
         elif self._force_int:
@@ -497,9 +500,9 @@ class MieleTemperatureSensor(MieleEntity):
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement of this entity, if any."""
-        if self._device["state"][self._key][self._index]["unit"] == "Celsius":
+        if self.device["state"][self._key][self._index]["unit"] == "Celsius":
             return "°C"
-        elif self._device["state"][self._key][self._index]["unit"] == "Fahrenheit":
+        elif self.device["state"][self._key][self._index]["unit"] == "Fahrenheit":
             return "°F"
 
     @property
@@ -518,12 +521,12 @@ class MieleTextSensor(MieleEntity):
         key: str,
     ):
         """Initialise Miele Raw Sensor."""
-        super().__init__(coordinator, device, key, _map_key(key))
+        super().__init__(coordinator, Platform.SENSOR, device, key, _map_key(key))
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        result = self._device["state"][self._key]["value_localized"]
+        result = self.device["state"][self._key]["value_localized"]
         if result == "":
             result = None
 
@@ -535,7 +538,7 @@ class MieleBatterySensor(MieleEntity, SensorEntity):
 
     def __init__(self, coordinator, device, key):
         """Initialize the Class."""
-        super().__init__(coordinator, device, key, _map_key(key))
+        super().__init__(coordinator, Platform.SENSOR, device, key, _map_key(key))
 
         self._attr_device_class = SensorDeviceClass.BATTERY
         self._attr_native_unit_of_measurement = "%"
@@ -544,7 +547,7 @@ class MieleBatterySensor(MieleEntity, SensorEntity):
     @property
     def state(self):
         """Return Sensor State."""
-        return self._device["state"][self._key]
+        return self.device["state"][self._key]
 
 
 class MieleConsumptionForecastSensor(MieleEntity, SensorEntity):
@@ -552,7 +555,7 @@ class MieleConsumptionForecastSensor(MieleEntity, SensorEntity):
 
     def __init__(self, coordinator, device, key):
         """Initizlise Class."""
-        super().__init__(coordinator, device, key, _map_key(key))
+        super().__init__(coordinator, Platform.SENSOR, device, key, _map_key(key))
 
         self._attr_native_unit_of_measurement = "%"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -560,7 +563,7 @@ class MieleConsumptionForecastSensor(MieleEntity, SensorEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        device_state = self._device["state"]
+        device_state = self.device["state"]
 
         if (
             device_state["ecoFeedback"] is not None
