@@ -23,7 +23,7 @@ def _map_key(key):
     elif key == "signalDoor":
         return "Door"
     elif key == "mobileStart":
-        return "Mobile Start"
+        return "MobileStart"
 
 
 def state_capability(type, state) -> bool:

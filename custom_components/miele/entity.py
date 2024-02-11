@@ -22,13 +22,21 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
         device: dict[str, any],
         key: str,
         key_name: str | None = None,
+        key_index: int | None = None,
     ):
         """Initialize class properties."""
         super().__init__(coordinator)
         self._key = key
 
         self.device_id = device["ident"]["deviceIdentLabel"]["fabNumber"]
-        self.unique_id = f"{self.device_id}_{self._key}"
+
+        # TODO: Migrate to New Unique ID/ Name etc.
+
+        # Set Unique ID
+        unique_id = f"{self.device_id}_{self._key}"
+        if key_index:
+            unique_id = f"{unique_id}_{key_index}"
+        self._attr_unique_id = slugify(unique_id)
 
         ident = self.device["ident"]
         name = ident["deviceName"]
@@ -36,13 +44,12 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
             name = f"{ident['type']['value_localized']}"
 
         if key_name:
-            self.name = f"{name} {key_name}"
+            self._attr_name = f"{name} {key_name}"
         else:
-            self.name = name
+            self._attr_name = name
 
         return
 
-        self._attr_unique_id = slugify(self.name)
         self.entity_id = f"{entity_type}.{self._attr_unique_id}"
 
         # If the entity is found in existing entities, remove it.

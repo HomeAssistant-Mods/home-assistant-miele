@@ -481,7 +481,12 @@ class MieleTemperatureSensor(MieleEntity):
     def __init__(self, coordinator, device, key, index, force_int=False):
         """Initialize the Class."""
         super().__init__(
-            coordinator, Platform.SENSOR, device, key, f"{_map_key(key)} {index}"
+            coordinator,
+            Platform.SENSOR,
+            device,
+            key,
+            key_name=f"{_map_key(key)} {index}",
+            key_index=index,
         )
         self._index = index
         self._force_int = force_int

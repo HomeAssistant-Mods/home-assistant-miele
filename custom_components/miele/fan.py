@@ -22,7 +22,7 @@ from .entity import MieleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-SUPPORTED_TYPES = [1, 2, 18]
+SUPPORTED_TYPES = [18]
 SPEED_RANGE = (1, 4)
 
 
