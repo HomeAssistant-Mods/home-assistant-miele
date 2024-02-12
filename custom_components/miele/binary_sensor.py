@@ -69,7 +69,7 @@ async def async_setup_entry(
                 )
 
     async_add_entities(entities, True)
-    coordinator.remove_old_entities(Platform.SENSOR)
+    coordinator.remove_old_entities(Platform.BINARY_SENSOR)
 
 
 class MieleBinarySensor(MieleEntity, BinarySensorEntity):
@@ -82,12 +82,14 @@ class MieleBinarySensor(MieleEntity, BinarySensorEntity):
         dot_key: str,
     ):
         """Initialize Entity."""
+        # Handle Entity Migration, using Map key as key instead of original
+        # this is due to original using Map Key as unique id.
         self._keys = dot_key.split(".")
         super().__init__(
             coordinator,
             "binary_sensor",
             device,
-            self._keys[-1],
+            _map_key(self._keys[-1]),
             _map_key(self._keys[-1]),
         )
 
@@ -102,9 +104,10 @@ class MieleBinarySensor(MieleEntity, BinarySensorEntity):
     @property
     def device_class(self):
         """Return the Device Class."""
-        if self._key == "signalDoor":
+        # Changed Key to use Map to handle migration
+        if self._key == "Door":
             return "door"
-        elif self._key == "mobileStart":
+        elif self._key == "MobileStart":
             return "running"
         else:
             return "problem"

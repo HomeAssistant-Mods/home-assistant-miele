@@ -43,7 +43,7 @@ async def async_setup_entry(
             entities.append(MieleFan(coordinator, device))
 
     async_add_entities(entities, True)
-    coordinator.remove_old_entities(Platform.SENSOR)
+    coordinator.remove_old_entities(Platform.FAN)
 
 
 class MieleFan(MieleEntity, FanEntity):

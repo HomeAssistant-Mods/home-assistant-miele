@@ -34,7 +34,7 @@ async def async_setup_entry(
             entities.append(MieleLight(coordinator, device))
 
     async_add_entities(entities, True)
-    coordinator.remove_old_entities(Platform.SENSOR)
+    coordinator.remove_old_entities(Platform.LIGHT)
 
 
 class MieleLight(MieleEntity, LightEntity):

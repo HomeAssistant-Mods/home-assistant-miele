@@ -34,9 +34,9 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
 
         # Set Unique ID
         unique_id = f"{self.device_id}_{self._key}"
-        if key_index:
+        if key_index is not None:
             unique_id = f"{unique_id}_{key_index}"
-        self._attr_unique_id = slugify(unique_id)
+        self._attr_unique_id = unique_id
 
         ident = self.device["ident"]
         name = ident["deviceName"]
@@ -48,9 +48,7 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
         else:
             self._attr_name = name
 
-        return
-
-        self.entity_id = f"{entity_type}.{self._attr_unique_id}"
+        self.entity_id = f"{entity_type}.{slugify(self._attr_name)}"
 
         # If the entity is found in existing entities, remove it.
         if entity_type in coordinator.old_entries:

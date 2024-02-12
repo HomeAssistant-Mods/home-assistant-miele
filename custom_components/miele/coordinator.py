@@ -84,7 +84,6 @@ class MieleDataUpdateCoordinator(DataUpdateCoordinator):
 
     def remove_old_entities(self, platform: str) -> None:
         """Remove old entities that are no longer provided."""
-        return
         if platform in self.old_entries:
             for entity_id in self.old_entries[platform]:
                 _LOGGER.warning(
