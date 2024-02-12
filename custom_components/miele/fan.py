@@ -34,7 +34,7 @@ async def async_setup_entry(
     """Load Sensors from the config settings."""
     coordinator: MieleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[FanEntity] = []
+    entities: list[MieleEntity] = []
     devices = coordinator.data
     for _, device in devices.items():
         device_type = device["ident"]["type"]["value_raw"]
@@ -51,7 +51,7 @@ class MieleFan(MieleEntity, FanEntity):
 
     def __init__(self, coordinator: MieleDataUpdateCoordinator, device: dict[str, any]):
         """Initialize Entity."""
-        super().__init__(coordinator, "fan", device, "fan")
+        super().__init__(coordinator, Platform.FAN, device)
         self._current_speed = 0
 
     @property

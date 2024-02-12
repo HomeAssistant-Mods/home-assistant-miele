@@ -25,7 +25,7 @@ async def async_setup_entry(
     """Load Sensors from the config settings."""
     coordinator: MieleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[LightEntity] = []
+    entities: list[MieleEntity] = []
     devices = coordinator.data
     for _, device in devices.items():
         device_type = device["ident"]["type"]["value_raw"]
@@ -42,7 +42,7 @@ class MieleLight(MieleEntity, LightEntity):
 
     def __init__(self, coordinator: MieleDataUpdateCoordinator, device: dict[str, any]):
         """Initialize Light Entity."""
-        super().__init__(coordinator, "light", device, "light")
+        super().__init__(coordinator, Platform.LIGHT, device)
         self._hass = coordinator.hass
 
     @property

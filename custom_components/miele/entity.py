@@ -20,7 +20,7 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
         coordinator: MieleDataUpdateCoordinator,
         entity_type: str,
         device: dict[str, any],
-        key: str,
+        key: str | None = None,
         key_name: str | None = None,
         key_index: int | None = None,
     ):
@@ -30,10 +30,10 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
 
         self.device_id = device["ident"]["deviceIdentLabel"]["fabNumber"]
 
-        # TODO: Migrate to New Unique ID/ Name etc.
-
         # Set Unique ID
-        unique_id = f"{self.device_id}_{self._key}"
+        unique_id = f"{self.device_id}"
+        if self._key is not None:
+            unique_id = f"{unique_id}_{self._key}"
         if key_index is not None:
             unique_id = f"{unique_id}_{key_index}"
         self._attr_unique_id = unique_id
@@ -74,13 +74,15 @@ class MieleEntity(CoordinatorEntity[MieleDataUpdateCoordinator]):
 
         name = device_name.title()
         model = ident["deviceIdentLabel"]["techType"]
-        version = ident["xkmIdentLabel"]["releaseVersion"]
+
+        gateway_type = ident["xkmIdentLabel"]["techType"]
+        gateway_version = ident["xkmIdentLabel"]["releaseVersion"]
 
         return DeviceInfo(
             identifiers={(DOMAIN, self.device_id)},
             name=name,
-            model=model,
             manufacturer="Miele",
-            sw_version=version,
+            model=f"{model} - ({gateway_type})",
+            sw_version=gateway_version,
             serial_number=self.device_id,
         )

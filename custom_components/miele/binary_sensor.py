@@ -41,7 +41,7 @@ async def async_setup_entry(
     """Load Sensors from the config settings."""
     coordinator: MieleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[BinarySensorEntity] = []
+    entities: list[MieleEntity] = []
     devices = coordinator.data
     for _, device in devices.items():
         device_state = device["state"]
@@ -87,7 +87,7 @@ class MieleBinarySensor(MieleEntity, BinarySensorEntity):
         self._keys = dot_key.split(".")
         super().__init__(
             coordinator,
-            "binary_sensor",
+            Platform.BINARY_SENSOR,
             device,
             _map_key(self._keys[-1]),
             _map_key(self._keys[-1]),

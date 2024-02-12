@@ -112,7 +112,7 @@ async def async_setup_entry(
     """Load Sensors from the config settings."""
     coordinator: MieleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[SensorEntity] = []
+    entities: list[MieleEntity] = []
     devices = coordinator.data
     for _, device in devices.items():
         device_state = device["state"]
