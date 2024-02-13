@@ -8,6 +8,7 @@ __pycache__
 *.egg-info
 */build/*
 */dist/*
+**/ssl/*
 **/*.pyc
 *.iml
 .idea/

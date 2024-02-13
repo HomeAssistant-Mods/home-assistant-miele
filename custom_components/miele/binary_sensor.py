@@ -1,23 +1,18 @@
+"""Support for the Miele Binary Sensors."""
+
 import logging
-from datetime import timedelta
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.helpers.entity import Entity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.miele import CAPABILITIES, DATA_DEVICES
-from custom_components.miele import DOMAIN as MIELE_DOMAIN
-
-PLATFORMS = ["miele"]
+from .const import DOMAIN, CAPABILITIES
+from .coordinator import MieleDataUpdateCoordinator
+from .entity import MieleEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-ALL_DEVICES = []
-
-
-def state_capability(type, state):
-    type_str = str(type)
-    if state in CAPABILITIES[type_str]:
-        return True
 
 
 def _map_key(key):
@@ -31,100 +26,88 @@ def _map_key(key):
         return "MobileStart"
 
 
-# pylint: disable=W0612
-def setup_platform(hass, config, add_devices, discovery_info=None):
-    global ALL_DEVICES
+def state_capability(type, state) -> bool:
+    """Check the capabilities."""
+    type_str = str(type)
+    if state in CAPABILITIES[type_str]:
+        return True
 
-    devices = hass.data[MIELE_DOMAIN][DATA_DEVICES]
-    for k, device in devices.items():
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+):
+    """Load Sensors from the config settings."""
+    coordinator: MieleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    entities: list[MieleEntity] = []
+    devices = coordinator.data
+    for _, device in devices.items():
         device_state = device["state"]
         device_type = device["ident"]["type"]["value_raw"]
 
-        binary_devices = []
         if "signalInfo" in device_state and state_capability(
             type=device_type, state="signalInfo"
         ):
-            binary_devices.append(MieleBinarySensor(hass, device, "signalInfo"))
+            entities.append(MieleBinarySensor(coordinator, device, "signalInfo"))
         if "signalFailure" in device_state and state_capability(
             type=device_type, state="signalFailure"
         ):
-            binary_devices.append(MieleBinarySensor(hass, device, "signalFailure"))
+            entities.append(MieleBinarySensor(coordinator, device, "signalFailure"))
         if "signalDoor" in device_state and state_capability(
             type=device_type, state="signalDoor"
         ):
-            binary_devices.append(MieleBinarySensor(hass, device, "signalDoor"))
+            entities.append(MieleBinarySensor(coordinator, device, "signalDoor"))
         if "remoteEnable" in device_state and state_capability(
             type=device_type, state="remoteEnable"
         ):
             remote_state = device_state["remoteEnable"]
             if "mobileStart" in remote_state:
-                binary_devices.append(
-                    MieleBinarySensor(hass, device, "remoteEnable.mobileStart")
+                entities.append(
+                    MieleBinarySensor(coordinator, device, "remoteEnable.mobileStart")
                 )
 
-        add_devices(binary_devices)
-        ALL_DEVICES = ALL_DEVICES + binary_devices
+    async_add_entities(entities, True)
+    coordinator.remove_old_entities(Platform.BINARY_SENSOR)
 
 
-def update_device_state():
-    for device in ALL_DEVICES:
-        try:
-            device.async_schedule_update_ha_state(True)
-        except (AssertionError, AttributeError):
-            _LOGGER.debug(
-                "Component most likely is disabled manually, if not please report to developer"
-                "{}".format(device.entity_id)
-            )
+class MieleBinarySensor(MieleEntity, BinarySensorEntity):
+    """Binary Sensor Entity."""
 
-
-class MieleBinarySensor(BinarySensorEntity):
-    def __init__(self, hass, device, key):
-        self._hass = hass
-        self._device = device
-        self._keys = key.split(".")
-        self._key = self._keys[-1]
-        self._ha_key = _map_key(self._key)
-
-    @property
-    def device_id(self):
-        """Return the unique ID for this sensor."""
-        return self._device["ident"]["deviceIdentLabel"]["fabNumber"]
-
-    @property
-    def unique_id(self):
-        """Return the unique ID for this sensor."""
-        return self.device_id + "_" + self._ha_key
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        ident = self._device["ident"]
-
-        result = ident["deviceName"]
-        if len(result) == 0:
-            return ident["type"]["value_localized"] + " " + self._ha_key
-        else:
-            return result + " " + self._ha_key
+    def __init__(
+        self,
+        coordinator: MieleDataUpdateCoordinator,
+        device: dict[str, any],
+        dot_key: str,
+    ):
+        """Initialize Entity."""
+        # Handle Entity Migration, using Map key as key instead of original
+        # this is due to original using Map Key as unique id.
+        self._keys = dot_key.split(".")
+        super().__init__(
+            coordinator,
+            Platform.BINARY_SENSOR,
+            device,
+            _map_key(self._keys[-1]),
+            _map_key(self._keys[-1]),
+        )
 
     @property
     def is_on(self):
         """Return the state of the sensor."""
-        current_val = self._device["state"]
+        current_val = self.device["state"]
         for k in self._keys:
             current_val = current_val[k]
         return bool(current_val)
 
     @property
     def device_class(self):
-        if self._key == "signalDoor":
+        """Return the Device Class."""
+        # Changed Key to use Map to handle migration
+        if self._key == "Door":
             return "door"
-        elif self._key == "mobileStart":
+        elif self._key == "MobileStart":
             return "running"
         else:
             return "problem"
-
-    async def async_update(self):
-        if not self.device_id in self._hass.data[MIELE_DOMAIN][DATA_DEVICES]:
-            _LOGGER.debug("Miele device not found: {}".format(self.device_id))
-        else:
-            self._device = self._hass.data[MIELE_DOMAIN][DATA_DEVICES][self.device_id]

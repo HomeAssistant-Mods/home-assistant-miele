@@ -7,13 +7,14 @@ homeassistant:
   internal_url: "https://localhost:8123"
 
 # Enable SSL, needed to auto reply to Miele Auth without error.
+# Setup Script will create the certificates.
 http:
-  ssl_certificate: ./ssl/myhass.crt
-  ssl_key: ./ssl/myhass.key
+  ssl_certificate: ./ssl/fullchain.pem
+  ssl_key: ./ssl/privkey.pem
 
 # Enable to initiate debugging in Home Assistant Runtime
 debugpy:
-  start: true
+  start: false
   wait: false
 
 # https://www.home-assistant.io/integrations/logger/

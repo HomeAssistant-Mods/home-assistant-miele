@@ -1,465 +1,177 @@
-"""
-Support for Miele.
-"""
-import asyncio
-import functools
-import logging
-from datetime import timedelta
-from importlib import import_module
+"""Miele@home Device Support."""
 
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
-from aiohttp import web
-from homeassistant.components.http import HomeAssistantView
-from homeassistant.core import callback
-from homeassistant.helpers import network
-from homeassistant.helpers.discovery import load_platform
-from homeassistant.helpers.entity import Entity
+import logging
+import os
+
+from aiohttp.client_exceptions import ClientError, ClientResponseError
+
+from homeassistant.components.application_credentials import (
+    ClientCredential,
+    async_import_client_credential,
+)
+from homeassistant.config_entries import ConfigEntry, SOURCE_IMPORT
+from homeassistant.const import (
+    CONF_CLIENT_ID,
+    CONF_CLIENT_SECRET,
+    CONF_SCAN_INTERVAL,
+    CONF_LANGUAGE,
+)
+from homeassistant.core import Config, HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers.config_entry_oauth2_flow import (
+    OAuth2Session,
+    async_get_implementations,
+    async_get_config_entry_implementation,
+)
 from homeassistant.helpers.entity_component import EntityComponent
-from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.network import get_url
+from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 from homeassistant.helpers.storage import STORAGE_DIR
 
-from .miele_at_home import MieleClient, MieleOAuth
+from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, ENTITIES
+from .coordinator import MieleDataUpdateCoordinator
+from .entity import MieleEntity
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: logging.Logger = logging.getLogger(__name__)
+
+CONF_CACHE_PATH = "cache_path"
 
 DEVICES = []
 
-DEFAULT_NAME = "Miele@home"
-DOMAIN = "miele"
-
-_CONFIGURING = {}
-
-DATA_OAUTH = "oauth"
-DATA_DEVICES = "devices"
-DATA_CLIENT = "client"
 SERVICE_ACTION = "action"
 SERVICE_START_PROGRAM = "start_program"
 SERVICE_STOP_PROGRAM = "stop_program"
-SCOPE = "code"
-DEFAULT_LANG = "en"
-DEFAULT_INTERVAL = 5
-AUTH_CALLBACK_PATH = "/api/miele/callback"
-AUTH_CALLBACK_NAME = "api:miele:callback"
-CONF_CLIENT_ID = "client_id"
-CONF_CLIENT_SECRET = "client_secret"
-CONF_LANG = "lang"
-CONF_CACHE_PATH = "cache_path"
-CONF_INTERVAL = "interval"
-CONFIGURATOR_LINK_NAME = "Link Miele account"
-CONFIGURATOR_SUBMIT_CAPTION = "I have authorized Miele@home."
-CONFIGURATOR_DESCRIPTION = (
-    "To link your Miele account, " "click the link, login, and authorize:"
-)
-CONFIGURATOR_DESCRIPTION_IMAGE = (
-    "https://api.mcs3.miele.com/assets/images/miele_logo.svg"
-)
-
-MIELE_COMPONENTS = ["binary_sensor", "light", "sensor", "fan"]
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_CLIENT_ID): cv.string,
-                vol.Required(CONF_CLIENT_SECRET): cv.string,
-                vol.Optional(CONF_LANG): cv.string,
-                vol.Optional(CONF_CACHE_PATH): cv.string,
-                vol.Optional(CONF_INTERVAL): cv.positive_int,
-            }
-        ),
-    },
-    extra=vol.ALLOW_EXTRA,
-)
-
-CAPABILITIES = {
-    "1": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature.0",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-        "spinningSpeed",
-        "ecoFeedback.energyConsumption",
-        "ecoFeedback.waterConsumption",
-    ],
-    "2": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-        "dryingStep",
-        "ecoFeedback.energyConsumption",
-    ],
-    "7": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "signalInfo",
-        "signalFailure",
-        "remoteEnable",
-        "elapsedTime",
-        "ecoFeedback.energyConsumption",
-        "ecoFeedback.waterConsumption",
-    ],
-    "12": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "13": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "14": ["status", "signalFailure", "plateStep"],
-    "15": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "16": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "17": [
-        "ProgramID",
-        "status",
-        "programPhase",
-        "signalInfo",
-        "signalFailure",
-        "remoteEnable",
-    ],
-    "18": [
-        "status",
-        "signalInfo",
-        "signalFailure",
-        "remoteEnable",
-        "ventilationStep",
-    ],
-    "19": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-    ],
-    "20": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-    ],
-    "21": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-    ],
-    "23": [
-        "ProgramID",
-        "status",
-        "programType",
-        "signalInfo",
-        "signalFailure",
-        "remoteEnable",
-        "batteryLevel",
-    ],
-    "24": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "targetTemperature.0",
-        "startTime",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-        "spinningSpeed",
-        "dryingStep",
-        "ecoFeedback.energyConsumption",
-        "ecoFeedback.waterConsumption",
-    ],
-    "25": [
-        "status",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "elapsedTime",
-    ],
-    "27": ["status", "signalFailure", "plateStep"],
-    "31": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "32": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-    ],
-    "33": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-    ],
-    "34": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-    ],
-    "45": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "67": [
-        "ProgramID",
-        "status",
-        "programType",
-        "programPhase",
-        "remainingTime",
-        "startTime",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "signalDoor",
-        "remoteEnable",
-        "elapsedTime",
-    ],
-    "68": [
-        "status",
-        "targetTemperature",
-        "temperature",
-        "signalInfo",
-        "signalFailure",
-        "remoteEnable",
-    ],
-}
 
 
-def request_configuration(hass, config, oauth):
-    """Request Miele authorization."""
-
-    async def miele_configuration_callback(callback_data):
-        if not hass.data[DOMAIN][DATA_OAUTH].authorized:
-            configurator.async_notify_errors(
-                _CONFIGURING[DOMAIN], "Failed to register, please try again."
-            )
-            return
-
-        if DOMAIN in _CONFIGURING:
-            req_config = _CONFIGURING.pop(DOMAIN)
-            hass.components.configurator.async_request_done(req_config)
-
-        await async_setup(hass, config)
-
-    _LOGGER.info("Requesting authorization...")
-    configurator = hass.components.configurator
-    _CONFIGURING[DOMAIN] = configurator.async_request_config(
-        DEFAULT_NAME,
-        miele_configuration_callback,
-        link_name=CONFIGURATOR_LINK_NAME,
-        link_url=oauth.authorization_url,
-        description=CONFIGURATOR_DESCRIPTION,
-        description_image=CONFIGURATOR_DESCRIPTION_IMAGE,
-        submit_caption=CONFIGURATOR_SUBMIT_CAPTION,
-    )
-    return
-
-
-def create_sensor(client, hass, home_device, lang):
-    return MieleDevice(hass, client, home_device, lang)
-
-
-def _to_dict(items):
-    # Replace with map()
-    result = {}
-    for item in items:
-        ident = item["ident"]
-        result[ident["deviceIdentLabel"]["fabNumber"]] = item
-
-    return result
-
-
-async def async_setup(hass, config):
-    """Set up the Miele platform."""
-
-    if DOMAIN not in hass.data:
-        hass.data[DOMAIN] = {}
-
-    if DATA_OAUTH not in hass.data[DOMAIN]:
-        callback_url = "{}{}".format(
-            network.get_url(hass, allow_external=True, prefer_external=True),
-            AUTH_CALLBACK_PATH,
-        )
+async def async_setup(hass: HomeAssistant, config: Config):
+    """Initiate the Migraiton of the YAML setup to User Interface."""
+    if conf := config.get(DOMAIN):
+        # Delete cache-path
         cache = config[DOMAIN].get(
-            CONF_CACHE_PATH, hass.config.path(STORAGE_DIR, f".miele-token-cache")
+            CONF_CACHE_PATH, hass.config.path(STORAGE_DIR, ".miele-token-cache")
         )
-        hass.data[DOMAIN][DATA_OAUTH] = MieleOAuth(
-            hass,
-            config[DOMAIN].get(CONF_CLIENT_ID),
-            config[DOMAIN].get(CONF_CLIENT_SECRET),
-            redirect_uri=callback_url,
-            cache_path=cache,
-        )
+        if cache:
+            try:
+                os.remove(cache)
+            except OSError:
+                _LOGGER.warn("Couldn't delte token cache to %s", cache)
+                pass
 
-    if not hass.data[DOMAIN][DATA_OAUTH].authorized:
-        _LOGGER.info("no token; requesting authorization")
-        hass.http.register_view(
-            MieleAuthCallbackView(config, hass.data[DOMAIN][DATA_OAUTH])
-        )
-        request_configuration(hass, config, hass.data[DOMAIN][DATA_OAUTH])
-        return True
+        # Import the Client Credentials, if not imported.
+        implementation = await async_get_implementations(hass, DOMAIN)
+        if not implementation:
+            if CONF_CLIENT_ID in conf and CONF_CLIENT_SECRET in conf:
+                await async_import_client_credential(
+                    hass,
+                    DOMAIN,
+                    ClientCredential(
+                        conf[CONF_CLIENT_ID],
+                        conf[CONF_CLIENT_SECRET],
+                        "miele",
+                    ),
+                )
 
-    lang = config[DOMAIN].get(CONF_LANG, DEFAULT_LANG)
+        # Raise the relevant issue to migrate or just remove the YAML entries.
+        if DOMAIN not in hass.config_entries.async_domains():
+            async_create_issue(
+                hass,
+                DOMAIN,
+                DOMAIN,
+                is_fixable=True,
+                severity=IssueSeverity.WARNING,
+                translation_key="deprecated_yaml_migrate",
+                translation_placeholders={
+                    "domain": DOMAIN,
+                    "integration_title": "Miele@home",
+                },
+            )
 
-    component = EntityComponent(_LOGGER, DOMAIN, hass)
+            # Initiate the Migraiton Import.
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": SOURCE_IMPORT},
+                    data=conf,
+                )
+            )
+        else:
+            async_create_issue(
+                hass,
+                DOMAIN,
+                DOMAIN,
+                is_fixable=True,
+                severity=IssueSeverity.WARNING,
+                translation_key="deprecated_yaml_config",
+                translation_placeholders={
+                    "domain": DOMAIN,
+                    "integration_title": "Miele@home",
+                },
+            )
 
-    client = MieleClient(hass, hass.data[DOMAIN][DATA_OAUTH])
-    hass.data[DOMAIN][DATA_CLIENT] = client
-    data_get_devices = await client.get_devices(lang)
-    hass.data[DOMAIN][DATA_DEVICES] = _to_dict(data_get_devices)
+    return True
 
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up Miele@home integration from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+
+    # Get Session and validate token is valid.
+    implementation = await async_get_config_entry_implementation(hass, entry)
+    session = OAuth2Session(hass, entry, implementation)
+    try:
+        await session.async_ensure_token_valid()
+    except ClientResponseError as err:
+        if 400 <= err.status < 500:
+            raise ConfigEntryAuthFailed(
+                "OAuth session is not valid, reauth required"
+            ) from err
+        raise ConfigEntryNotReady from err
+    except ClientError as err:
+        raise ConfigEntryNotReady from err
+
+    coordinator = MieleDataUpdateCoordinator(
+        hass,
+        session,
+        entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        entry.options.get(CONF_LANGUAGE, hass.config.language),
+        entry.entry_id,
+    )
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+    await coordinator.async_config_entry_first_refresh()
+
+    await hass.config_entries.async_forward_entry_setups(entry, ENTITIES)
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    # Setup the Main Miele Device for services, and migration
+    # No idea how to add to the Config Entry of Miele.
     DEVICES.extend(
-        [
-            create_sensor(client, hass, home_device, lang)
-            for k, home_device in hass.data[DOMAIN][DATA_DEVICES].items()
-        ]
+        [MieleDevice(coordinator, device) for _, device in coordinator.data.items()]
+    )
+    component = EntityComponent(
+        _LOGGER,
+        DOMAIN,
+        hass,
+        entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
     )
     await component.async_add_entities(DEVICES, False)
 
-    for component in MIELE_COMPONENTS:
-        load_platform(hass, component, DOMAIN, {}, config)
-
-    async def refresh_devices(event_time):
-        _LOGGER.debug("Attempting to update Miele devices")
-        try:
-            device_state = await client.get_devices(lang)
-        except:
-            device_state = None
-        if device_state is None:
-            _LOGGER.error("Did not receive Miele devices")
-        else:
-            hass.data[DOMAIN][DATA_DEVICES] = _to_dict(device_state)
-            for device in DEVICES:
-                device.async_schedule_update_ha_state(True)
-
-            for component in MIELE_COMPONENTS:
-                platform = import_module(".{}".format(component), __name__)
-                platform.update_device_state()
-
+    # Register the Services
     register_services(hass)
-    interval = timedelta(seconds=config[DOMAIN].get(CONF_INTERVAL, DEFAULT_INTERVAL))
-
-    async_track_time_interval(hass, refresh_devices, interval)
 
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, ENTITIES):
+        hass.data[DOMAIN].pop(entry.entry_id)
+
+    return unload_ok
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)
 
 
 def register_services(hass):
@@ -503,104 +215,23 @@ async def _action_stop_program(service):
     await _apply_service(service, MieleDevice.action, body)
 
 
-class MieleAuthCallbackView(HomeAssistantView):
-    """Miele Authorization Callback View."""
+class MieleDevice(MieleEntity):
+    """Miele Device, for Automation Services."""
 
-    requires_auth = False
-    url = AUTH_CALLBACK_PATH
-    name = AUTH_CALLBACK_NAME
-
-    def __init__(self, config, oauth):
-        """Initialize."""
-        self.config = config
-        self.oauth = oauth
-
-    @callback
-    async def get(self, request):
-        """Receive authorization token."""
-        hass = request.app["hass"]
-
-        from oauthlib.oauth2.rfc6749.errors import (
-            MismatchingStateError,
-            MissingTokenError,
-        )
-
-        response_message = """Miele@home has been successfully authorized!
-        You can close this window now!"""
-
-        result = None
-        if request.query.get("code") is not None:
-            try:
-                func = functools.partial(
-                    self.oauth.get_access_token, request.query["code"]
-                )
-
-                result = await hass.async_add_executor_job(func)
-            except MissingTokenError as error:
-                _LOGGER.error("Missing token: %s", error)
-                response_message = """Something went wrong when
-                attempting authenticating with Miele@home. The error
-                encountered was {}. Please try again!""".format(
-                    error
-                )
-            except MismatchingStateError as error:
-                _LOGGER.error("Mismatched state, CSRF error: %s", error)
-                response_message = """Something went wrong when
-                attempting authenticating with Miele@home. The error
-                encountered was {}. Please try again!""".format(
-                    error
-                )
-        else:
-            _LOGGER.error("Unknown error when authorizing")
-            response_message = """Something went wrong when
-                attempting authenticating with Miele@home.
-                An unknown error occurred. Please try again!
-                """
-
-        html_response = """<html><head><title>Miele@home Auth</title></head>
-        <body><h1>{}</h1></body></html>""".format(
-            response_message
-        )
-
-        response = web.Response(
-            body=html_response, content_type="text/html", status=200, headers=None
-        )
-        response.enable_compression()
-
-        return response
-
-
-class MieleDevice(Entity):
-    def __init__(self, hass, client, home_device, lang):
-        self._hass = hass
-        self._client = client
-        self._home_device = home_device
-        self._lang = lang
-
-    @property
-    def unique_id(self):
-        """Return the unique ID for this sensor."""
-        return self._home_device["ident"]["deviceIdentLabel"]["fabNumber"]
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-
-        ident = self._home_device["ident"]
-
-        result = ident["deviceName"]
-        if len(result) == 0:
-            result = ident["type"]["value_localized"]
-
-        return result
+    def __init__(
+        self,
+        coordinator: MieleDataUpdateCoordinator,
+        device: dict[str, any],
+    ):
+        """Initialise Miele Device Entity."""
+        super().__init__(coordinator, DOMAIN, device)
 
     @property
     def state(self):
         """Return the state of the sensor."""
-
-        result = self._home_device["state"]["status"]["value_localized"]
-        if result == None:
-            result = self._home_device["state"]["status"]["value_raw"]
+        result = self.device["state"]["status"]["value_localized"]
+        if result is None:
+            result = self.device["state"]["status"]["value_raw"]
 
         return result
 
@@ -609,29 +240,25 @@ class MieleDevice(Entity):
         """Attributes."""
 
         result = {}
-        result["state_raw"] = self._home_device["state"]["status"]["value_raw"]
+        result["state_raw"] = self.device["state"]["status"]["value_raw"]
 
-        result["model"] = self._home_device["ident"]["deviceIdentLabel"]["techType"]
-        result["device_type"] = self._home_device["ident"]["type"]["value_localized"]
-        result["fabrication_number"] = self._home_device["ident"]["deviceIdentLabel"][
+        result["model"] = self.device["ident"]["deviceIdentLabel"]["techType"]
+        result["device_type"] = self.device["ident"]["type"]["value_localized"]
+        result["fabrication_number"] = self.device["ident"]["deviceIdentLabel"][
             "fabNumber"
         ]
 
-        result["gateway_type"] = self._home_device["ident"]["xkmIdentLabel"]["techType"]
-        result["gateway_version"] = self._home_device["ident"]["xkmIdentLabel"][
+        result["gateway_type"] = self.device["ident"]["xkmIdentLabel"]["techType"]
+        result["gateway_version"] = self.device["ident"]["xkmIdentLabel"][
             "releaseVersion"
         ]
 
         return result
 
     async def action(self, action):
-        await self._client.action(self.unique_id, action)
+        """Peform Action on Device."""
+        await self.coordinator.client.action(self.unique_id, action)
 
     async def start_program(self, program_id):
-        await self._client.start_program(self.unique_id, program_id)
-
-    async def async_update(self):
-        if not self.unique_id in self._hass.data[DOMAIN][DATA_DEVICES]:
-            _LOGGER.debug("Miele device not found: {}".format(self.unique_id))
-        else:
-            self._home_device = self._hass.data[DOMAIN][DATA_DEVICES][self.unique_id]
+        """Start Program on Device."""
+        await self.coordinator.client.start_program(self.unique_id, program_id)

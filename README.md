@@ -10,12 +10,12 @@ This project exposes Miele state information of appliances connected to a Miele 
 
 ## Prerequisite
 
-* A running version of [Home Assistant](https://home-assistant.io). While earlier versions may work, the custom component has been developed and tested with version 0.76.x.
+* A running version of [Home Assistant](https://home-assistant.io). This custom component has been developed and tested with version 2024.02.0
 
 * Following the [instructions on the Miele developer site](https://www.miele.com/f/com/en/register_api.aspx), you need to request your personal ```ClientID``` and ```ClientSecret```.
 
 ## HACS Install
-We are now included in the default Repo of HACS. This is the recomanded way to install this integration. 
+We are now included in the default Repo of HACS. This is the recomanded way to install this integration.
 
 * Install HACS if you haven't yet, instructions to install HACS can be found here : https://hacs.xyz/docs/installation/prerequisites
 

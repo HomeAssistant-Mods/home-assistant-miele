@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "reauth_confirm": {
+        "title": "Reauthenticate Miele@home",
+        "description": "The Miele@home integration needs to re-authenticate your account"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "description": "Select Options, language is defaulted to Home Assistant language.",
+        "data": {
+          "scan_interval": "Seconds between data refresh requests",
+          "language": "Select API Language"
+        }
+      }
+    }
+  },
+  "issues": {
+    "deprecated_yaml_migrate": {
+      "title": "The {integration_title} YAML configuration is being deprecated.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Migrate {integration_title} Integration",
+            "description": "Go to the Settions/Devices section and add the {integration_title}.\n\n{integration_title} should show up as a discovered device and the Client Id/Secret have been imported into the been Application Credentials section, so setup will only ask you to re-authenticate. Options for refresh rate and language are available in the device configure section, language defaults to Home Assistants setting.\n\nOnce imported you can remove the settings from configuration.yaml."
+          }
+        }
+      }
+    },
+    "deprecated_yaml_config": {
+      "title": "The {integration_title} YAML configuration is being deprecated.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Remove {integration_title} YAML Config",
+            "description": "Please remove the {integration_title} settings from configuration.yaml and restart home assistant."
+          }
+        }
+      }
+    }
+  }
+}

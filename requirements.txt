@@ -1,8 +1,7 @@
-pip>=21.0,<23.4
+pip>=21.3.1
+numpy==1.26.0
 bumpver==2023.1129
-ruff==0.1.9
+colorlog==6.8.2
+ruff==0.2.1
 chardet==5.2.0
-
-# When Update, Also Update the requirements_hass.txt with requirements_all.txt
-# from Home Assistant Core for the version.
-homeassistant==2023.12.4
+homeassistant==2024.2.0
