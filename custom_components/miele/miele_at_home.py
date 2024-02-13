@@ -63,21 +63,22 @@ class MieleClient:
                 headers=headers,
             )
 
-            if result.status != 200:
+            if result.status != 204:
                 match result.status:
                     case 401:
                         _LOGGER.info("Request unauthorized, re-auth required.")
                     case _:
-                        _LOGGER.error(
+                        json_result = await result.json()
+                        _LOGGER.warning(
                             "Failed to execute device action for %s: %s %s",
                             device_id,
                             result.status,
-                            result.json(),
+                            json_result.get("message", "No Reason Given."),
                         )
-
+                return json_result
+            else:
                 return None
 
-            return result.json()
         except ConnectionError as err:
             _LOGGER.error(f"Failed to execute device action: {err}")
             return None
@@ -94,21 +95,22 @@ class MieleClient:
                 headers=headers,
             )
 
-            if result.status != 200:
+            if result.status != 204:
                 match result.status:
                     case 401:
                         _LOGGER.info("Request unauthorized, re-auth required.")
                     case _:
-                        _LOGGER.error(
+                        json_result = await result.json()
+                        _LOGGER.warning(
                             "Failed to execute device action for %s: %s %s",
                             device_id,
                             result.status,
-                            result.json(),
+                            json_result.get("message", "No Reason Given."),
                         )
-
+                return json_result
+            else:
                 return None
 
-            return result.json()
         except ConnectionError as err:
             _LOGGER.error(f"Failed to execute start program: {err}")
             return None

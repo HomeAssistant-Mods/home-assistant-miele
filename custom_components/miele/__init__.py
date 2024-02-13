@@ -143,7 +143,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Setup the Main Miele Device for services, and migration
     # No idea how to add to the Config Entry of Miele.
-    DEVICES = []
     DEVICES.extend(
         [MieleDevice(coordinator, device) for _, device in coordinator.data.items()]
     )
