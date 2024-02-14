@@ -10,7 +10,9 @@
     {
     "hostname": "miele-*",
     "macaddress": "001D63*"
-    }
+    },
+    {"hostname": "miele-*"},
+    {"macaddress": "001D63*"}
   ],
   "dependencies": [
     "http","configurator","application_credentials"
