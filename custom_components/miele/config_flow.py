@@ -49,17 +49,14 @@ class MieleOAuth2FlowHandler(
             discovery_info.macaddress,
         )
 
-        await self._async_handle_discovery_without_unique_id()
-        self.async_oauth_create_entry
-
-        return await self.async_step_user()
+        return await self._async_step_discovery_without_unique_id()
 
     async def async_step_import(
         self, config: dict[str, Any] | None = None
     ) -> FlowResult:
         """Start a configuration flow based on imported data."""
         await self._async_handle_discovery_without_unique_id()
-        self.async_oauth_create_entry
+        self.async_oauth_create_entry()
 
         return await self.async_step_user()
 
@@ -79,11 +76,15 @@ class MieleOAuth2FlowHandler(
 
         return await self.async_step_user()
 
-    async def async_oauth_create_entry(self, data: dict) -> FlowResult:
+    async def async_oauth_create_entry(
+        self, data: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Create an entry for Miele."""
         existing_entry = await self.async_set_unique_id(DOMAIN)
 
         if existing_entry:
+            self.logger.warn("Existing Entry: Found %s", existing_entry.domain)
+
             self.hass.config_entries.async_update_entry(existing_entry, data=data)
             await self.hass.config_entries.async_reload(existing_entry.entry_id)
             return self.async_abort(reason="reauth_successful")
