@@ -12,9 +12,11 @@ OAUTH_TOKEN_URL = "https://api.mcs3.miele.com/thirdparty/token"
 
 ENTITIES = [
     Platform.BINARY_SENSOR,
+    Platform.DEVICE_TRACKER,
     Platform.FAN,
     Platform.LIGHT,
     Platform.SENSOR,
+    Platform.EVENT,
 ]
 
 CAPABILITIES = {
