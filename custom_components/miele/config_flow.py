@@ -42,6 +42,7 @@ class MieleOAuth2FlowHandler(
 
     async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
         """DHCP Discovery."""
+        self.logger.warn("Initiated Discovery.")
         return await super().async_step_dhcp(discovery_info)
 
     async def async_step_import(
