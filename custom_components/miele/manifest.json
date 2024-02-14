@@ -10,6 +10,10 @@
     {
     "hostname": "miele-*",
     "macaddress": "001D63*"
+    },
+    {
+      "hostname": "miele-*",
+      "macaddress": "40B02F*"
     }
   ],
   "dependencies": [
