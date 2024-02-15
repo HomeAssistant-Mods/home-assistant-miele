@@ -53,7 +53,7 @@ class MieleClient:
 
     async def action(self, device_id, body):
         """Perform an Action on the Miele Device."""
-        _LOGGER.debug(f"Executing device action for {device_id}{body}")
+        _LOGGER.debug(f"Executing device action for {device_id} :: {body}")
         try:
             headers = {"Content-Type": "application/json"}
             result = await self._session.async_request(
