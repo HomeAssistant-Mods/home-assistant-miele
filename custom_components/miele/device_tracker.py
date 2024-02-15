@@ -47,15 +47,50 @@ def register_services():
     """Register all services for Miele devices."""
     platform = entity_platform.async_get_current_platform()
 
-    # platform.async_register_entity_service(SERVICE_ACTION, {}, "action")
+    platform.async_register_entity_service(
+        SERVICE_ACTION,
+        vol.All(
+            cv.has_at_least_one_key("entity_id", "device_id"),
+            cv.has_at_most_one_key("entity_id", "device_id"),
+            cv.make_entity_service_schema(
+                {
+                    vol.Optional("entity_id"): cv.comp_entity_ids,
+                    vol.Optional("device_id"): cv.string,
+                    vol.Required("body"): cv.string,
+                }
+            ),
+        ),
+        "action",
+    )
     platform.async_register_entity_service(
         SERVICE_START_PROGRAM,
-        {
-            vol.Required("program"): vol.Coerce(int),
-        },
+        vol.All(
+            cv.has_at_least_one_key("entity_id", "device_id"),
+            cv.has_at_most_one_key("entity_id", "device_id"),
+            cv.make_entity_service_schema(
+                {
+                    vol.Optional("entity_id"): cv.comp_entity_ids,
+                    vol.Optional("device_id"): cv.string,
+                    vol.Required("program_id"): vol.Coerce(int),
+                }
+            ),
+        ),
         "start_program",
     )
-    # platform.async_register_entity_service(SERVICE_STOP_PROGRAM, {}, "stop_program")
+    platform.async_register_entity_service(
+        SERVICE_STOP_PROGRAM,
+        vol.All(
+            cv.has_at_least_one_key("entity_id", "device_id"),
+            cv.has_at_most_one_key("entity_id", "device_id"),
+            cv.make_entity_service_schema(
+                {
+                    vol.Optional("entity_id"): cv.comp_entity_ids,
+                    vol.Optional("device_id"): cv.string,
+                }
+            ),
+        ),
+        "stop_program",
+    )
 
 
 class MieleDevice(MieleEntity, ScannerEntity):
@@ -106,11 +141,11 @@ class MieleDevice(MieleEntity, ScannerEntity):
 
     async def action(self, action):
         """Peform Action on Device."""
-        await self.coordinator.client.action(self.unique_id, action)
+        await self.coordinator.client.action(self.device_id, action)
 
     async def start_program(self, program_id):
         """Start Program on Device."""
-        await self.coordinator.client.start_program(self.unique_id, program_id)
+        await self.coordinator.client.start_program(self.device_id, program_id)
 
     async def stop_program(self):
         """Stop program action."""

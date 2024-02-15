@@ -16,7 +16,6 @@ ENTITIES = [
     Platform.FAN,
     Platform.LIGHT,
     Platform.SENSOR,
-    Platform.EVENT,
 ]
 
 CAPABILITIES = {

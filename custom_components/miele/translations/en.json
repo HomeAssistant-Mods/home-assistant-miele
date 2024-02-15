@@ -18,6 +18,58 @@
       }
     }
   },
+  "services": {
+    "action": {
+      "name": "",
+      "description": "Runs action of Miele device",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Select the entities to start."
+        },
+        "device_id": {
+          "name": "Fabrication Number",
+          "description": "Fabrication number of device to set. e.g. 000123456789"
+        },
+        "body": {
+          "name": "Body",
+          "description": "The command to send in curly brackets. e.g. \"powerOff\": true"
+        }
+      }
+    },
+    "start_program": {
+      "name": "",
+      "description": "Starts a program on a Miele device, use Entity Id or Fabrication Number",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Select the entities to start."
+        },
+        "device_id": {
+          "name": "Fabrication Number",
+          "description": "Fabrication number of device to set. e.g. 000123456789"
+        },
+        "program_id": {
+          "name": "Program Id",
+          "description": "The Program ID to start. e.g. 2"
+        }
+      }
+    },
+    "stop_program": {
+      "name": "",
+      "description": "Stops a program on a Miele device, use Entity Id or Fabrication Number",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Select the entities to start."
+        },
+        "device_id": {
+          "name": "Fabrication Number",
+          "description": "Fabrication number of device to set. e.g. 000123456789"
+        }
+      }
+    }
+  },
   "issues": {
     "deprecated_yaml_migrate": {
       "title": "The {integration_title} YAML configuration is being deprecated.",
