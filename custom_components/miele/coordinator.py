@@ -1,6 +1,7 @@
 """Helper and wrapper classes for Miele@home module."""
 
 import logging
+import json
 
 from datetime import timedelta
 
@@ -14,6 +15,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
+from homeassistant.helpers.service import ServiceCall
 
 
 from .const import DOMAIN
@@ -41,16 +43,19 @@ class MieleDataUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=scan_interval),
         )
 
+        # Used outside of the Coordinator.
+        self.client = MieleClient(hass, session)
+        self.old_entries: dict[str, list[str]] = {}
+
         self._language = language
         self._session = session
-        self.client = MieleClient(hass, session)
-
-        self.old_entries: dict[str, list[str]] = {}
-        self.entity_registry = async_get(hass)
+        self._entity_registry = async_get(hass)
+        self._entry_id = entry_id
+        self._devices = []
 
         # Convert registries into Entity Platform and ID.
         registry_entries = async_entries_for_config_entry(
-            self.entity_registry, entry_id
+            self._entity_registry, self._entry_id
         )
         for reg_entity in registry_entries:
             if reg_entity.domain not in self.old_entries:
@@ -91,4 +96,45 @@ class MieleDataUpdateCoordinator(DataUpdateCoordinator):
                     platform,
                     entity_id,
                 )
-                self.entity_registry.async_remove(entity_id)
+                self._entity_registry.async_remove(entity_id)
+
+    async def service_action(self, service: ServiceCall):
+        """Start Program Service, moved here but not ideal."""
+        entity_ids = service.data.get("entity_id")
+        device_ids = service.data.get("device_id")
+
+        entities = self.hass.data["domain_entities"].get("device_tracker")
+        _devices = []
+        if entity_ids:
+            _devices.extend(
+                [
+                    device
+                    for device_id, device in entities.items()
+                    if device_id in entity_ids
+                ]
+            )
+        if device_ids:
+            _devices.extend(
+                [
+                    device
+                    for _, device in entities.items()
+                    if device.device_id in device_ids
+                ]
+            )
+
+        for device in _devices:
+            match service.service:
+                case "start_program":
+                    await device.start_program(service.data.get("program_id"))
+                case "stop_program":
+                    await device.stop_program()
+                case "action":
+                    body = service.data.get("body")
+                    if isinstance(body, str):
+                        action = json.loads(body)
+                    else:
+                        action = body
+
+                    await device.action(action)
+                case _:
+                    _LOGGER.warning("Service %s does not exist.", service.service)

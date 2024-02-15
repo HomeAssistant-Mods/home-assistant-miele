@@ -1,4 +1,8 @@
-"""Support for the Miele Device Tracker Entities."""
+"""Support for the Miele Device Tracker Entities.
+
+This uses a tracker for the Device to handle services and support
+Migration from the original Platform based approach.
+"""
 
 import logging
 import voluptuous as vol
@@ -7,7 +11,6 @@ from homeassistant.components.device_tracker import ScannerEntity, SourceType
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_platform
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import slugify
@@ -37,18 +40,13 @@ async def async_setup_entry(
         entities.append(MieleDevice(coordinator, device))
 
     async_add_entities(entities, True)
-    coordinator.remove_old_entities(Platform.DEVICE_TRACKER)
+    coordinator.remove_old_entities(Platform.DEVICE_TRACKER)  # Probably not needed.
 
     # Register the Services
-    register_services()
-
-
-def register_services():
-    """Register all services for Miele devices."""
-    platform = entity_platform.async_get_current_platform()
-
-    platform.async_register_entity_service(
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_ACTION,
+        coordinator.service_action,
         vol.All(
             cv.has_at_least_one_key("entity_id", "device_id"),
             cv.has_at_most_one_key("entity_id", "device_id"),
@@ -60,10 +58,13 @@ def register_services():
                 }
             ),
         ),
-        "action",
     )
-    platform.async_register_entity_service(
+
+    # Service Trigger Moved to coordinator to be able to get registry.
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_START_PROGRAM,
+        coordinator.service_action,
         vol.All(
             cv.has_at_least_one_key("entity_id", "device_id"),
             cv.has_at_most_one_key("entity_id", "device_id"),
@@ -75,10 +76,12 @@ def register_services():
                 }
             ),
         ),
-        "start_program",
     )
-    platform.async_register_entity_service(
+
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_STOP_PROGRAM,
+        coordinator.service_action,
         vol.All(
             cv.has_at_least_one_key("entity_id", "device_id"),
             cv.has_at_most_one_key("entity_id", "device_id"),
@@ -89,7 +92,6 @@ def register_services():
                 }
             ),
         ),
-        "stop_program",
     )
 
 
