@@ -23,19 +23,21 @@ We are now included in the default Repo of HACS. This is the recomanded way to i
 
 * Restart Home Assistant.
 
-* Enable the new integration from the Settings -> Devices and Add Integration, search for Miele and follow the instructions
+* To enable the new integration go to Settings -> Devices and click Add Integration, search for Miele and follow the instructions
 
-* The Home Assistant Web UI will show you a UI to configure the Miele platform. Follow the instructions to log into the Miele Cloud Service. This will communicate back an authentication token that will be cached to communicate with the Cloud Service.
+* The Miele Integration configuration flow will show, enter the Name/ Client ID and Client Secret then follow the link to sign-in o the miele developer site (this probably will open automatically).  After logging in you should be re-directed back to home assistant and the integration is configured.
+
+* The Default refresh is 5 seconds and the default language comes from your Home Assistant setup, this can be changed by clicking on the Miele Integration and selecting configure.
 
 Done. If you follow all the instructions, the Miele integration should be up and running. All Miele devices that you can see in your Mobile application should now be also visible in Home Assistant (miele.*). In addition, there will be a number of ```binary_sensors``` and ```sensors``` that can be used for automation.
 
 
 ## Migration from YAML
-YAML has been deprecated, after update the YAML configuration settings will be copied and the Miele Device discovered.
+YAML has been deprecated, after this update the YAML configuration settings will be copied and the Miele Device discovered in the settings -> devices.
 
 * Go to Settings -> Devices  and click on the configure button in the Miele Device.
 
-* Re-Login when Prompted.
+* You should be promped to re-login to the Miele Developer site, if not follow the link, once logged in you will be returned to home assistant and the integration setup in the UI.
 
 * After setup remove the Miele settings from the configuration.yaml and restart.
 
@@ -56,9 +58,11 @@ After migration all sensors and services should work as before.
 
 * Restart Home Assistant.
 
-* Setup the new integration from Settings -> Devices and Add Integration.
+* To enable the new integration go to Settings -> Devices and click Add Integration, search for Miele and follow the instructions
 
-* The Home Assistant Web UI will show you a UI to configure the Miele platform. Follow the instructions to log into the Miele Cloud Service. This will communicate back an authentication token that will be cached to communicate with the Cloud Service.
+* The Miele Integration configuration flow will show, enter the Name/ Client ID and Client Secret then follow the link to sign-in o the miele developer site (this probably will open automatically).  After logging in you should be re-directed back to home assistant and the integration is configured.
+
+* The Default refresh is 5 seconds and the default language comes from your Home Assistant setup, this can be changed by clicking on the Miele Integration and selecting configure.
 
 Done. If you follow all the instructions, the Miele integration should be up and running. All Miele devices that you can see in your Mobile application should now be also visible in Home Assistant (miele.*). In addition, there will be a number of ```binary_sensors``` and ```sensors``` that can be used for automation.
 
