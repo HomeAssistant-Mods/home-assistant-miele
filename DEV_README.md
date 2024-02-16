@@ -41,6 +41,20 @@ NOTE: This will take a while to start and give lots of errors, once started up I
 Once Started you can access by: https://localhost:8123
 
 
+### Versioning
+
+To bump version we can use the tool bumpver, this should only be done by the repo owner, this will update all version requirements, These will auto submitted and a tag created ready to create a release.
+
+All examples include -d which is test mode it does not commit, remove the -d to perform the update and commit/ create tag.
+
+* Bump Patch (Beta)           - bumpver update -d -p -t beta
+* Bump Patch (Beta Increment) - bumpver update -d --tag-num
+* Bump Patch (Final)          - bumpver update -d -t final
+
+* Bump Minor (same as above)  - bumpver update -d -m (extra Opts as above)
+* Bump Major (same as above)  - bumpver update -d -major (extra opts as above)
+
+
 ### Unit Testing
 
 Not currently set up.
