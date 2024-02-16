@@ -1,4 +1,5 @@
 {
   "name": "Miele integration",
-  "homeassistant": "2024.02.0"
+  "hacs": "1.32.1",
+  "homeassistant": "2024.01.0"
 }
