@@ -3,7 +3,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "miele"
-VERSION = "v2021.10.12"
+VERSION = "v2024.2.16-b0"
 
 DEFAULT_SCAN_INTERVAL = 5
 

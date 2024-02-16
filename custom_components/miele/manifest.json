@@ -3,7 +3,7 @@
   "name": "Miele@home",
   "documentation": "https://github.com/HomeAssistant-Mods/home-assistant-miele",
   "issue_tracker": "https://github.com/HomeAssistant-Mods/home-assistant-miele/issues",
-  "version": "v2021.10.12",
+  "version": "v2024.2.16-b0",
   "iot_class": "cloud_polling",
   "config_flow": true,
   "dependencies": [
