@@ -55,6 +55,7 @@ After migration all sensors and services should work as before.
     - binary_sensor.py
     - light.py
     - sensor.py
+```
 
 * Restart Home Assistant.
 
