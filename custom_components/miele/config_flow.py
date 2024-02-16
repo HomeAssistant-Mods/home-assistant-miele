@@ -6,7 +6,6 @@ import voluptuous as vol
 from collections.abc import Mapping
 from typing import Any
 
-from homeassistant.components import dhcp
 from homeassistant.config_entries import (
     ConfigEntry,
     OptionsFlow,
@@ -39,20 +38,6 @@ class MieleOAuth2FlowHandler(
     def logger(self) -> logging.Logger:
         """Return logger."""
         return logging.getLogger(__name__)
-
-    async def async_step_dhcp(self, discovery_info: dhcp.DhcpServiceInfo) -> FlowResult:
-        """DHCP Discovery."""
-        self.logger.warn(
-            "Discovery. Host: %s, IP: %s, MAC: %s",
-            discovery_info.hostname,
-            discovery_info.ip,
-            discovery_info.macaddress,
-        )
-
-        await self._async_handle_discovery_without_unique_id()
-        self.async_oauth_create_entry()
-
-        return await self.async_step_user()
 
     async def async_step_import(
         self, config: dict[str, Any] | None = None
