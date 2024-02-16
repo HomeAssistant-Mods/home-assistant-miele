@@ -1,0 +1,7 @@
+pip>=21.3.1
+numpy==1.26.0
+bumpver==2023.1129
+colorlog==6.8.2
+ruff==0.2.1
+chardet==5.2.0
+homeassistant==2024.2.1

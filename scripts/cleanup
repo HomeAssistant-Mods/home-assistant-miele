@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+rm -rf .storage
+rm -rf deps
+rm -rf blueprints
+rm -f .HA_VERSION
+rm -f home-assistant.log*
+rm -f home-assistant_v2.db
+

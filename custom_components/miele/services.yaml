@@ -1,58 +1,62 @@
 # Example services.yaml entry
 
 action:
-  # Description of the service
   description: Runs action of Miele device
-  # Different fields that your service accepts
   fields:
-    # Key of the field
     entity_id:
-      # Description of the field
       description: Name(s) of the entities to set (optional, either set this or device_id)
-      # Example value that can be passed for this field
       example: "miele.washing_machine"
+      selector:
+        entity:
+          integration: miele
+          domain: miele
     device_id:
-      # Description of the field
       description: fab number of device to set (optional, either set this or entity_id)
-      # Example value that can be passed for this field
       example: "000123456789"
+      selector:
+        text:
     body:
       description: The command to send
       example: "{\"powerOff\": true}"
+      required: true
+      selector:
+        text:
+          multiline: true
 
 start_program:
-  # Description of the service
   description: Starts a program on a Miele device
-  # Different fields that your service accepts
   fields:
-    # Key of the field
     entity_id:
-      # Description of the field
       description: Name(s) of the entities to set (optional, either set this or device_id)
-      # Example value that can be passed for this field
       example: "miele.washing_machine"
+      selector:
+        entity:
+          integration: miele
+          domain: miele
     device_id:
-      # Description of the field
-      description: fab number of device to set (optional, either set this or entity_id)
-      # Example value that can be passed for this field
+      description: Fabrication number of device to set (optional, either set this or entity_id)
       example: "000123456789"
+      selector:
+        text:
     program_id:
       description: The program id to start
       example: 1
+      required: true
+      selector:
+        number:
 
 stop_program:
-  # Description of the service
   description: Stops program on a Miele device
-  # Different fields that your service accepts
   fields:
-    # Key of the field
     entity_id:
-      # Description of the field
       description: Name(s) of the entities to set (optional, either set this or device_id)
-      # Example value that can be passed for this field
       example: "miele.washing_machine"
+      selector:
+        entity:
+          integration: miele
+          domain: miele
     device_id:
-      # Description of the field
       description: fab number of device to set (optional, either set this or entity_id)
-      # Example value that can be passed for this field
       example: "000123456789"
+      selector:
+        text:

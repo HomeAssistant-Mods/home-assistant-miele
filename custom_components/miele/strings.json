@@ -1,0 +1,101 @@
+{
+  "config": {
+    "step": {
+      "reauth_confirm": {
+        "title": "Reauthenticate Miele@home",
+        "description": "The Miele@home integration needs to re-authenticate your account"
+      }
+    },
+    "abort": {
+      "already_in_progress": "[%key:common::config_flow::abort::already_in_progress%]",
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "description": "Select Options, language is defaulted to Home Assistant language.",
+        "data": {
+          "scan_interval": "Seconds between data refresh requests",
+          "language": "Select API Language"
+        }
+      }
+    }
+  },
+  "services": {
+    "action": {
+      "name": "",
+      "description": "Runs action of Miele device",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Select the entities to start."
+        },
+        "device_id": {
+          "name": "Fabrication Number",
+          "description": "Fabrication number of device to set. e.g. 000123456789"
+        },
+        "body": {
+          "name": "Body",
+          "description": "The command to send in curly brackets. e.g. \"powerOff\": true"
+        }
+      }
+    },
+    "start_program": {
+      "name": "",
+      "description": "Starts a program on a Miele device, use Entity Id or Fabrication Number",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Select the entities to start."
+        },
+        "device_id": {
+          "name": "Fabrication Number",
+          "description": "Fabrication number of device to set. e.g. 000123456789"
+        },
+        "program_id": {
+          "name": "Program Id",
+          "description": "The Program ID to start. e.g. 2"
+        }
+      }
+    },
+    "stop_program": {
+      "name": "",
+      "description": "Stops a program on a Miele device, use Entity Id or Fabrication Number",
+      "fields": {
+        "entity_id": {
+          "name": "Entity",
+          "description": "Select the entities to start."
+        },
+        "device_id": {
+          "name": "Fabrication Number",
+          "description": "Fabrication number of device to set. e.g. 000123456789"
+        }
+      }
+    }
+  },
+  "issues": {
+    "deprecated_yaml_migrate": {
+      "title": "The {integration_title} YAML configuration is being deprecated.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Migrate {integration_title} Integration",
+            "description": "Go to the Settions/Devices section and add the {integration_title}.\n\n{integration_title} should show up as a discovered device and the Client Id/Secret have been imported into the been Application Credentials section, so setup will only ask you to re-authenticate. Options for refresh rate and language are available in the device configure section, language defaults to Home Assistants setting.\n\nOnce imported you can remove the settings from configuration.yaml."
+          }
+        }
+      }
+    },
+    "deprecated_yaml_config": {
+      "title": "The {integration_title} YAML configuration is being deprecated.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Remove {integration_title} YAML Config",
+            "description": "Please remove the {integration_title} settings from configuration.yaml and restart home assistant."
+          }
+        }
+      }
+    }
+  }
+}

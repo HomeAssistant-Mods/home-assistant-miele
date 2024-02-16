@@ -6,47 +6,36 @@ This project exposes Miele state information of appliances connected to a Miele 
 
 ## Prerequisite
 
-* A running version of [Home Assistant](https://home-assistant.io). While earlier versions may work, the custom component has been developed and tested with version 0.76.x.
-* The ```requests_oauthlib``` library as part of your HA installation. Please install via ```pip3 install requests_oauthlib```.
-  For Hassbian you need to install this via :
-```
-cd /srv/
-sudo chown homeassistant:homeassistant homeassistant
-sudo su -s /bin/bash homeassistant
-cd /srv/homeassistant
-source bin/activate
-pip3 install requests_oauthlib
-```
-
-* Following the [instructions on the Miele developer site](https://www.miele.com/developer/getinvolved.html), you need to request your personal ```ClientID``` and ```ClientSecret```.
+* Following the [instructions on the Miele developer site](https://www.miele.com/f/com/en/register_api.aspx), you need to request your personal ```ClientID``` and ```ClientSecret```.
 
 ## Installation of the custom component
+We are now included in the default Repo of HACS. This is the recomanded way to install this integration.
 
-* Copy the content of this repository into your ```custom_components``` folder, which is a subdirectory of your Home Assistant configuration directory. By default, this directory is located under ```~/.home-assistant```. The structure of the ```custom_components``` directory should look like this afterwards:
+* Install HACS if you haven't yet, instructions to install HACS can be found here : https://hacs.xyz/docs/installation/prerequisites
 
-```
-- miele
-    - __init__.py
-    - miele_at_home.py
-    - binary_sensor.py
-    - light.py
-    - sensor.py
-```
-
-* Enabled the new platform in your ```configuration.yaml```:
-
-```
-miele:
-    client_id: <your Miele ClientID>
-    client_secret: <your Miele ClientSecret>
-    lang: <optional. en=english, de=german>
-    cache_path: <optional. where to store the cached access token>
-```
+* Open the HACS component from your sidebar -> click integrations -> Search for Miele and install the Integration.
 
 * Restart Home Assistant.
-* The Home Assistant Web UI will show you a UI to configure the Miele platform. Follow the instructions to log into the Miele Cloud Service. This will communicate back an authentication token that will be cached to communicate with the Cloud Service.
+
+* To enable the new integration go to Settings -> Devices and click Add Integration, search for Miele and follow the instructions
+
+* The Miele Integration configuration flow will show, enter the Name/ Client ID and Client Secret then follow the link to sign-in o the miele developer site (this probably will open automatically).  After logging in you should be re-directed back to home assistant and the integration is configured.
+
+* The Default refresh is 5 seconds and the default language comes from your Home Assistant setup, this can be changed by clicking on the Miele Integration and selecting configure.
 
 Done. If you follow all the instructions, the Miele integration should be up and running. All Miele devices that you can see in your Mobile application should now be also visible in Home Assistant (miele.*). In addition, there will be a number of ```binary_sensors``` and ```sensors``` that can be used for automation.
+
+
+## Migration from YAML
+YAML has been deprecated, after this update the YAML configuration settings will be copied and the Miele Device discovered in the settings -> devices.
+
+* Go to Settings -> Devices  and click on the configure button in the Miele Device.
+
+* You should be promped to re-login to the Miele Developer site, if not follow the link, once logged in you will be returned to home assistant and the integration setup in the UI.
+
+* After setup remove the Miele settings from the configuration.yaml and restart.
+
+After migration all sensors and services should work as before.
 
 ## Questions
 

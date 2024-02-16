@@ -1,0 +1,61 @@
+/*
+  Copy this file to .devcontainer.json
+  if using PODMAN, instead of DOCKER, uncomment the runArgs section
+
+  Change BUILD_TYPE to "dev" to use pytests and develop and "run" to use homeassistant
+*/
+{
+    "name": "HomeAssistant-Mods/home-assistant-miele",
+    "image": "mcr.microsoft.com/vscode/devcontainers/python:1-3.11",
+    "postCreateCommand": "scripts/setup",
+    "forwardPorts": [
+        8123
+    ],
+    "portsAttributes": {
+        "8123": {
+          "label": "8123",
+          "protocol": "https"
+        }
+    },
+    "containerEnv": {
+        "BUILD_TYPE": "run"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "github.vscode-pull-request-github",
+                "mikestead.dotenv",
+                "ryanluker.vscode-coverage-gutters"
+            ],
+            "settings": {
+                "files.eol": "\n",
+                "files.associations": {
+                    "*.yaml": "home-assistant"
+                },
+                "editor.tabSize": 4,
+                "python.pythonPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.analysis.autoSearchPaths": false,
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true,
+                "python.experiments.enabled": false,
+                "editor.defaultFormatter": "ms-python.black-formatter",
+                "editor.formatOnPaste": false,
+                "editor.formatOnSave": true,
+                "editor.formatOnType": true,
+                "extensions.ignoreRecommendations": true,
+                "files.trimTrailingWhitespace": true
+            }
+        }
+    },
+    "remoteUser": "vscode",
+    "containerUser": "vscode",
+    //"runArgs": [
+    //    "--userns=keep-id"
+    //],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,Z"
+}
