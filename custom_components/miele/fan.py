@@ -3,7 +3,7 @@ import math
 from datetime import timedelta
 from typing import Optional
 
-from homeassistant.components.fan import SUPPORT_SET_SPEED, FanEntity
+from homeassistant.components.fan import FanEntityFeature, FanEntity
 from homeassistant.helpers.entity import Entity
 from homeassistant.util.percentage import (
     int_states_in_range,
@@ -90,7 +90,7 @@ class MieleFan(FanEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        return SUPPORT_SET_SPEED
+        return FanEntityFeature.SET_SPEED
 
     @property
     def speed(self):
